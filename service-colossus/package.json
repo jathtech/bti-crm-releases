@@ -1,0 +1,14 @@
+{
+  "name": "service-colossus",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Service Colossus — trade-agnostic field service management for OpenTrades (jobs, dispatch, customers, estimates, invoices, pricebook)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/api.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
