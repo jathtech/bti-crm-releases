@@ -72,7 +72,7 @@ function renderLogin() {
   App.me = null;
   $app.innerHTML = `
     <div class="login-wrap"><div class="login-card">
-      <h1>🏛️ Service Colossus</h1>
+      <h1 style="display:flex; align-items:center; gap:8px"><span style="color:var(--accent); display:inline-flex; width:22px">${ICONS.mark}</span>Service Colossus</h1>
       <div class="sub">OpenTrades field service platform</div>
       <div class="field"><label>Email</label><input id="li-email" type="email" autocomplete="username" value=""></div>
       <div class="field"><label>Password</label><input id="li-pass" type="password" autocomplete="current-password"></div>
@@ -91,28 +91,48 @@ function renderLogin() {
 }
 const val = (id) => (document.getElementById(id) || {}).value || '';
 
+// Monochrome line icons (Feather-style): stroke follows the sidebar color,
+// so nothing carries a white fill onto the dark rail.
+const svgIcon = (paths) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+const ICONS = {
+  mark: svgIcon('<path d="M12 2 3 7h18z"/><path d="M4 21h16"/><path d="M6 10v8M10 10v8M14 10v8M18 10v8"/>'),
+  dashboard: svgIcon('<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>'),
+  dispatch: svgIcon('<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'),
+  jobs: svgIcon('<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>'),
+  customers: svgIcon('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
+  estimates: svgIcon('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>'),
+  invoices: svgIcon('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'),
+  pricebook: svgIcon('<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>'),
+  settings: svgIcon('<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>'),
+};
+
 const NAV = [
-  ['dashboard', '📊', 'Dashboard'],
-  ['dispatch', '🗓️', 'Dispatch'],
-  ['jobs', '🧰', 'Jobs'],
-  ['customers', '👥', 'Customers'],
-  ['estimates', '📝', 'Estimates'],
-  ['invoices', '💵', 'Invoices'],
-  ['pricebook', '📚', 'Pricebook'],
-  ['settings', '⚙️', 'Settings'],
+  ['dashboard', 'Dashboard'],
+  ['dispatch', 'Dispatch'],
+  ['jobs', 'Jobs'],
+  ['customers', 'Customers'],
+  ['estimates', 'Estimates'],
+  ['invoices', 'Invoices'],
+  ['pricebook', 'Pricebook'],
+  ['settings', 'Settings'],
 ];
 
 function renderShell(active, contentHtml) {
   const navItems = NAV
     .filter(([k]) => k !== 'settings' || App.me.role !== 'technician')
-    .map(([k, icon, label]) => `<a href="#/${k}" class="${active === k ? 'active' : ''}"><span class="icon">${icon}</span><span class="txt">${label}</span></a>`)
+    .map(([k, label]) => `<a href="#/${k}" class="${active === k ? 'active' : ''}" data-tip="${esc(label)}" aria-label="${esc(label)}">${ICONS[k]}</a>`)
     .join('');
   $app.innerHTML = `
     <div class="shell">
       <div class="sidebar">
-        <div class="logo">🏛️ Service Colossus<small>${esc(App.settings.companyName || 'OpenTrades')}</small></div>
+        <div class="logo-mark" title="Service Colossus — ${esc(App.settings.companyName || 'OpenTrades')}">${ICONS.mark}</div>
         <nav class="nav">${navItems}</nav>
-        <div class="whoami"><b>${esc(App.me.name)}</b>${esc(App.me.role)} · <a href="#" id="nav-logout">sign out</a></div>
+        <div class="whoami">
+          <button class="whoami-btn" id="nav-logout" data-tip="${esc(App.me.name)} (${esc(App.me.role)}) — sign out" aria-label="Sign out">
+            <span class="avatar" style="background:${esc(App.me.color || '#495057')}">${esc(App.me.name.slice(0, 2).toUpperCase())}</span>
+          </button>
+        </div>
       </div>
       <div class="topbar">
         <input class="global-search" id="global-search" placeholder="Search customers, jobs… (press Enter)">
