@@ -1,0 +1,582 @@
+<title>Audiobook Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,600;9..144,900&family=Karla:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* ============================================================
+   THEME TOKENS — this block is the only thing to change to
+   match the desktop app's palette. Everything below reads
+   from these variables.
+   ============================================================ */
+:root{
+  --bg:#16100C;
+  --surface:#1E1712;
+  --raised:#2A211A;
+  --line:#3A2E25;
+  --line-soft:#2C231C;
+  --text:#F2E9E0;
+  --muted:#A79785;
+  --accent:#E8A33D;
+  --accent-ink:#16100C;
+  --accent-soft:rgba(232,163,61,.14);
+  --ember:#D4633A;
+  --signal:#79A98C;
+  --shadow:0 18px 40px -24px rgba(0,0,0,.85);
+
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --body:"Karla","Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+
+  --wrap:1140px;
+  --step--1:clamp(.78rem,.76rem + .1vw,.85rem);
+  --step-0:clamp(1rem,.97rem + .15vw,1.08rem);
+  --step-1:clamp(1.2rem,1.12rem + .38vw,1.4rem);
+  --step-2:clamp(1.5rem,1.34rem + .78vw,2rem);
+  --step-3:clamp(2rem,1.66rem + 1.7vw,3.1rem);
+  --step-4:clamp(2.6rem,1.9rem + 3.4vw,4.6rem);
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme="dark"]){
+    --bg:#F5F2ED; --surface:#FFFFFF; --raised:#EDE7DD;
+    --line:#DBD1C4; --line-soft:#E6DFD4;
+    --text:#241B14; --muted:#6B5B4B;
+    --accent:#A96F17; --accent-ink:#FFFFFF; --accent-soft:rgba(169,111,23,.12);
+    --ember:#A8431F; --signal:#3F7A58;
+    --shadow:0 18px 40px -28px rgba(60,40,20,.45);
+  }
+}
+:root[data-theme="light"]{
+  --bg:#F5F2ED; --surface:#FFFFFF; --raised:#EDE7DD;
+  --line:#DBD1C4; --line-soft:#E6DFD4;
+  --text:#241B14; --muted:#6B5B4B;
+  --accent:#A96F17; --accent-ink:#FFFFFF; --accent-soft:rgba(169,111,23,.12);
+  --ember:#A8431F; --signal:#3F7A58;
+  --shadow:0 18px 40px -28px rgba(60,40,20,.45);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--body); font-size:var(--step-0); line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{width:100%; max-width:var(--wrap); margin-inline:auto; padding-inline:24px}
+h1,h2,h3{font-family:var(--display); font-weight:600; text-wrap:balance; margin:0; line-height:1.1}
+p{margin:0}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:3px}
+.eyebrow{
+  font-family:var(--mono); font-size:var(--step--1); letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent); margin:0;
+}
+.lede{color:var(--muted); font-size:var(--step-1); line-height:1.5; max-width:58ch}
+
+/* --- placeholder marker: values still to confirm --- */
+[data-tbd]{border-bottom:1px dotted var(--ember); cursor:help}
+
+/* ---------- header ---------- */
+header.site{
+  position:sticky; top:0; z-index:20;
+  background:color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter:blur(10px); border-bottom:1px solid var(--line-soft);
+}
+.bar{display:flex; align-items:center; gap:28px; padding-block:14px}
+.mark{display:flex; align-items:center; gap:10px; font-family:var(--display);
+  font-weight:900; font-size:1.12rem; letter-spacing:-.01em; text-decoration:none}
+.mark svg{display:block; flex:none}
+nav.main{display:flex; gap:22px; margin-left:auto; font-size:var(--step--1)}
+nav.main a{color:var(--muted); text-decoration:none}
+nav.main a:hover{color:var(--text)}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  font-family:var(--body); font-weight:700; font-size:var(--step--1);
+  padding:11px 20px; border-radius:8px; text-decoration:none; border:1px solid transparent;
+  transition:transform .12s ease, background .16s ease;
+}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--accent); color:var(--accent-ink)}
+.btn-primary:hover{background:color-mix(in srgb, var(--accent) 86%, var(--text))}
+.btn-ghost{border-color:var(--line); color:var(--text)}
+.btn-ghost:hover{background:var(--raised)}
+.btn-lg{padding:15px 28px; font-size:var(--step-0)}
+
+/* ---------- hero ---------- */
+.hero{padding-block:clamp(48px,7vw,92px) clamp(36px,5vw,60px)}
+.hero h1{font-size:var(--step-4); font-weight:600; letter-spacing:-.02em; max-width:16ch; margin-block:18px 20px}
+.hero h1 em{font-style:italic; color:var(--accent); font-weight:300}
+.cta-row{display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top:30px}
+.cta-note{font-family:var(--mono); font-size:var(--step--1); color:var(--muted)}
+
+/* ---------- waveform console ---------- */
+.console{
+  margin-top:clamp(36px,5vw,56px); background:var(--surface);
+  border:1px solid var(--line); border-radius:14px; overflow:hidden; box-shadow:var(--shadow);
+}
+.console-head{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding:12px 16px; border-bottom:1px solid var(--line-soft); background:var(--raised);
+  font-family:var(--mono); font-size:var(--step--1); color:var(--muted);
+}
+.console-head .file{color:var(--text)}
+.console-head .spacer{margin-left:auto}
+.dot{width:8px; height:8px; border-radius:50%; background:var(--signal); flex:none}
+canvas#wave{display:block; width:100%; height:170px; max-width:100%}
+.console-foot{
+  display:flex; gap:0; border-top:1px solid var(--line-soft);
+  font-family:var(--mono); font-size:var(--step--1); overflow-x:auto;
+}
+.chapter{
+  flex:1 0 auto; min-width:120px; padding:11px 14px; color:var(--muted);
+  border-right:1px solid var(--line-soft); white-space:nowrap;
+}
+.chapter:last-child{border-right:0}
+.chapter b{display:block; color:var(--text); font-weight:600; font-family:var(--body)}
+.chapter.live{color:var(--accent); background:var(--accent-soft)}
+.chapter.live b{color:var(--accent)}
+
+/* ---------- spec strip ---------- */
+.spec{border-block:1px solid var(--line-soft); background:var(--surface); padding-block:clamp(32px,4vw,44px)}
+.spec-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:2px; margin-top:24px;
+  background:var(--line-soft); border:1px solid var(--line-soft); border-radius:10px; overflow:hidden}
+.spec-cell{background:var(--surface); padding:18px 18px 16px}
+.spec-cell dt{font-family:var(--mono); font-size:var(--step--1); color:var(--muted); letter-spacing:.04em}
+.spec-cell dd{margin:6px 0 0; font-family:var(--mono); font-weight:600; font-size:var(--step-1);
+  font-variant-numeric:tabular-nums; color:var(--text)}
+.pass{display:inline-flex; align-items:center; gap:6px; margin-top:9px;
+  font-family:var(--mono); font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--signal)}
+.pass::before{content:""; width:6px; height:6px; border-radius:50%; background:var(--signal)}
+
+/* ---------- sections ---------- */
+section{padding-block:clamp(56px,7vw,92px)}
+.sec-head{max-width:62ch}
+.sec-head h2{font-size:var(--step-3); letter-spacing:-.015em; margin-block:14px 16px}
+
+/* pipeline — a real ordered sequence, so the numbers mean something */
+.pipeline{list-style:none; margin:44px 0 0; padding:0; display:grid; gap:0;
+  border-top:1px solid var(--line-soft)}
+.pipeline li{display:grid; grid-template-columns:66px 1fr; gap:20px; align-items:start;
+  padding-block:24px; border-bottom:1px solid var(--line-soft)}
+.pipeline .n{font-family:var(--mono); font-size:var(--step--1); color:var(--accent);
+  padding-top:5px; font-variant-numeric:tabular-nums}
+.pipeline h3{font-size:var(--step-1); margin-bottom:7px}
+.pipeline p{color:var(--muted); max-width:64ch}
+.pipeline .out{font-family:var(--mono); font-size:var(--step--1); color:var(--muted); margin-top:9px}
+.pipeline .out span{color:var(--text)}
+
+/* casting table */
+.cast{margin-top:36px; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface)}
+.cast-row{display:grid; grid-template-columns:1.1fr 1fr auto; gap:18px; align-items:center;
+  padding:15px 20px; border-bottom:1px solid var(--line-soft)}
+.cast-row:last-child{border-bottom:0}
+.cast-row.head{background:var(--raised); font-family:var(--mono); font-size:var(--step--1);
+  letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+.role{font-weight:700}
+.role small{display:block; font-weight:400; color:var(--muted); font-size:var(--step--1)}
+.voice{font-family:var(--mono); font-size:var(--step--1); color:var(--text)}
+.voice span{color:var(--muted)}
+.take{font-family:var(--mono); font-size:var(--step--1); color:var(--muted); font-variant-numeric:tabular-nums}
+
+/* pricing */
+.plans{display:grid; grid-template-columns:repeat(auto-fit,minmax(258px,1fr)); gap:18px; margin-top:40px}
+.plan{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:26px 24px;
+  display:flex; flex-direction:column; gap:16px}
+.plan.featured{border-color:var(--accent); box-shadow:var(--shadow)}
+.plan h3{font-size:var(--step-1)}
+.price{font-family:var(--mono); font-size:var(--step-3); font-weight:600; letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums; line-height:1}
+.price small{font-family:var(--body); font-size:var(--step--1); font-weight:400; color:var(--muted); letter-spacing:0}
+.plan ul{list-style:none; margin:0; padding:0; display:grid; gap:9px; font-size:var(--step--1); color:var(--muted)}
+.plan li{display:grid; grid-template-columns:16px 1fr; gap:9px}
+.plan li::before{content:"—"; color:var(--accent); font-family:var(--mono)}
+.plan .btn{margin-top:auto}
+
+/* faq */
+.faq{margin-top:36px; border-top:1px solid var(--line-soft)}
+.faq details{border-bottom:1px solid var(--line-soft)}
+.faq summary{cursor:pointer; padding-block:19px; font-family:var(--display); font-weight:600;
+  font-size:var(--step-1); list-style:none; display:flex; gap:16px; align-items:baseline}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+"; margin-left:auto; color:var(--accent); font-family:var(--mono); font-weight:400}
+.faq details[open] summary::after{content:"–"}
+.faq .ans{padding-bottom:20px; color:var(--muted); max-width:68ch}
+
+/* footer */
+footer.site{border-top:1px solid var(--line-soft); background:var(--surface); padding-block:44px}
+.foot{display:flex; flex-wrap:wrap; gap:26px; align-items:flex-start}
+.foot nav{display:flex; flex-wrap:wrap; gap:20px; margin-left:auto; font-size:var(--step--1)}
+.foot a{color:var(--muted); text-decoration:none}
+.foot a:hover{color:var(--text)}
+.foot small{display:block; color:var(--muted); font-size:var(--step--1); margin-top:10px}
+
+@media (max-width:640px){
+  nav.main{display:none}
+  .cast-row{grid-template-columns:1fr auto}
+  .cast-row .voice{grid-column:1/-1}
+  .cast-row.head{display:none}
+  .pipeline li{grid-template-columns:40px 1fr; gap:14px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important; transition:none!important}
+}
+</style>
+
+<header class="site">
+  <div class="wrap bar">
+    <a class="mark" href="#top">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+        <rect x="1" y="8" width="2.4" height="6" rx="1.2" fill="currentColor" opacity=".45"/>
+        <rect x="5.4" y="4.5" width="2.4" height="13" rx="1.2" fill="currentColor" opacity=".7"/>
+        <rect x="9.8" y="1" width="2.4" height="20" rx="1.2" fill="#E8A33D"/>
+        <rect x="14.2" y="5.5" width="2.4" height="11" rx="1.2" fill="currentColor" opacity=".7"/>
+        <rect x="18.6" y="9" width="2.4" height="4" rx="1.2" fill="currentColor" opacity=".45"/>
+      </svg>
+      <span data-tbd title="Placeholder — swap for your real product name">Audiobook Studio</span>
+    </a>
+    <nav class="main">
+      <a href="#how">How it works</a>
+      <a href="#casting">Voice casting</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a class="btn btn-primary" href="#pricing">Download for Windows</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <div class="wrap hero">
+    <p class="eyebrow">Manuscript in · finished audiobook out</p>
+    <h1>Produce an audiobook without booking <em>a single studio hour.</em></h1>
+    <p class="lede">
+      Drop in your manuscript. Cast a voice for the narrator and one for every character who speaks.
+      Generate, master, and export chapters that pass retail submission checks on the first upload.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary btn-lg" href="#pricing">Download for Windows</a>
+      <a class="btn btn-ghost btn-lg" href="#how">See how it works</a>
+      <span class="cta-note" data-tbd title="Confirm your actual trial terms">Free on your first chapter</span>
+    </div>
+
+    <div class="console">
+      <div class="console-head">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="file">the-lighthouse-keeper.docx</span>
+        <span>14 chapters</span>
+        <span>8h 22m</span>
+        <span class="spacer"></span>
+        <span>44.1 kHz · 16-bit</span>
+      </div>
+      <canvas id="wave" width="1100" height="170" role="img"
+        aria-label="Waveform of chapter three, with the playhead midway through and chapter boundaries marked."></canvas>
+      <div class="console-foot">
+        <div class="chapter"><b>01 · Landfall</b>38m 04s</div>
+        <div class="chapter"><b>02 · The Keeper</b>41m 17s</div>
+        <div class="chapter live"><b>03 · Nightwatch</b>36m 52s · rendering</div>
+        <div class="chapter"><b>04 · Salt</b>33m 09s</div>
+        <div class="chapter"><b>05 · The Wreck</b>44m 31s</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spec">
+    <div class="wrap">
+      <p class="eyebrow">Retail submission check</p>
+      <h2 style="font-size:var(--step-2); margin-top:12px; max-width:24ch">Every chapter is measured before you export.</h2>
+      <dl class="spec-grid">
+        <div class="spec-cell">
+          <dt>RMS level</dt><dd>−20.4 dB</dd>
+          <p class="pass">in spec −23 to −18</p>
+        </div>
+        <div class="spec-cell">
+          <dt>Peak</dt><dd>−3.6 dB</dd>
+          <p class="pass">ceiling −3.0</p>
+        </div>
+        <div class="spec-cell">
+          <dt>Noise floor</dt><dd>−64 dB</dd>
+          <p class="pass">max −60</p>
+        </div>
+        <div class="spec-cell">
+          <dt>Head / tail room</dt><dd>0.7 s / 3.1 s</dd>
+          <p class="pass">0.5–1.0 / 1.0–5.0</p>
+        </div>
+        <div class="spec-cell">
+          <dt>Export</dt><dd>MP3 192 CBR</dd>
+          <p class="pass">+ M4B with markers</p>
+        </div>
+      </dl>
+    </div>
+  </div>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">The pipeline</p>
+        <h2>Six passes, in order, every time.</h2>
+        <p class="lede">Each stage hands a finished artifact to the next, so you can stop after any one of them and pick the file up in your own tools.</p>
+      </div>
+      <ol class="pipeline">
+        <li>
+          <span class="n">01</span>
+          <div>
+            <h3>Import the manuscript</h3>
+            <p>DOCX, EPUB, PDF or plain text. Front matter, page numbers and running headers are stripped; footnotes are held aside for you to place or drop.</p>
+            <p class="out">Produces <span>a clean reading script</span></p>
+          </div>
+        </li>
+        <li>
+          <span class="n">02</span>
+          <div>
+            <h3>Detect chapters and dialogue</h3>
+            <p>Headings become chapter breaks with their own markers. Quoted speech is attributed to the character who said it, and you correct anything it got wrong in a single pass.</p>
+            <p class="out">Produces <span>a marked-up script with speaker tags</span></p>
+          </div>
+        </li>
+        <li>
+          <span class="n">03</span>
+          <div>
+            <h3>Cast the voices</h3>
+            <p>Assign a narrator, then a distinct voice per speaking character. Audition any line before you commit, and lock a voice so a re-render never reassigns it.</p>
+            <p class="out">Produces <span>a cast sheet bound to the script</span></p>
+          </div>
+        </li>
+        <li>
+          <span class="n">04</span>
+          <div>
+            <h3>Render the takes</h3>
+            <p>Chapters render in the background while you keep editing. Pronunciation fixes apply per book, so a character's name is never mispronounced twice.</p>
+            <p class="out">Produces <span>raw takes at 44.1 kHz</span></p>
+          </div>
+        </li>
+        <li>
+          <span class="n">05</span>
+          <div>
+            <h3>Master to spec</h3>
+            <p>Levelling, de-essing, room tone and head/tail trim run per chapter, then each file is measured against the retail targets above and flagged if it misses.</p>
+            <p class="out">Produces <span>mastered, measured chapters</span></p>
+          </div>
+        </li>
+        <li>
+          <span class="n">06</span>
+          <div>
+            <h3>Export the package</h3>
+            <p>Per-chapter MP3s for retail upload, a chaptered M4B for your own library, plus the opening credits, closing credits and a retail sample cut to length.</p>
+            <p class="out">Produces <span>an upload-ready folder</span></p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="casting" style="background:var(--surface); border-block:1px solid var(--line-soft)">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Voice casting</p>
+        <h2>One narrator. A different voice for everyone who speaks.</h2>
+        <p class="lede">Multi-voice production is what separates a finished audiobook from a text-to-speech file. Cast once at the book level and the assignment holds across every chapter and every re-render.</p>
+      </div>
+      <div class="cast">
+        <div class="cast-row head"><div>Role</div><div>Voice</div><div>Lines</div></div>
+        <div class="cast-row">
+          <div class="role">Narrator<small>Third person, past tense</small></div>
+          <div class="voice">Marlow <span>· warm baritone · 0.96×</span></div>
+          <div class="take">3,418</div>
+        </div>
+        <div class="cast-row">
+          <div class="role">Elsa Vandt<small>Keeper, 60s</small></div>
+          <div class="voice">Brine <span>· weathered alto · 0.92×</span></div>
+          <div class="take">642</div>
+        </div>
+        <div class="cast-row">
+          <div class="role">Tomas<small>Deckhand, 20s</small></div>
+          <div class="voice">Halyard <span>· light tenor · 1.04×</span></div>
+          <div class="take">389</div>
+        </div>
+        <div class="cast-row">
+          <div class="role">The Inspector<small>Appears ch. 7–11</small></div>
+          <div class="voice">Quill <span>· clipped, precise · 1.00×</span></div>
+          <div class="take">177</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Pricing</p>
+        <h2>Pay per book, not per month.</h2>
+        <p class="lede">Runs on your own machine — your manuscript never sits on someone else's server waiting to be processed.</p>
+      </div>
+      <div class="plans">
+        <div class="plan">
+          <h3>Single title</h3>
+          <p class="price" data-tbd title="Confirm your real pricing">$49<small> / book</small></p>
+          <ul>
+            <li>One finished audiobook, unlimited re-renders</li>
+            <li>Up to 6 cast voices</li>
+            <li>MP3 + chaptered M4B export</li>
+            <li>Retail spec check</li>
+          </ul>
+          <a class="btn btn-ghost" href="#">Buy a single title</a>
+        </div>
+        <div class="plan featured">
+          <h3>Author</h3>
+          <p class="price" data-tbd title="Confirm your real pricing">$149<small> / year</small></p>
+          <ul>
+            <li>Unlimited titles</li>
+            <li>Unlimited cast voices</li>
+            <li>Series-wide pronunciation dictionary</li>
+            <li>Batch render across a backlist</li>
+            <li>Updates for the full year</li>
+          </ul>
+          <a class="btn btn-primary" href="#">Start with the Author plan</a>
+        </div>
+        <div class="plan">
+          <h3>Studio</h3>
+          <p class="price" data-tbd title="Confirm your real pricing">$399<small> / year</small></p>
+          <ul>
+            <li>Everything in Author</li>
+            <li>Five seats</li>
+            <li>Shared cast sheets and dictionaries</li>
+            <li>Client-ready delivery folders</li>
+          </ul>
+          <a class="btn btn-ghost" href="#">Talk to us about Studio</a>
+        </div>
+      </div>
+      <p class="cta-note" style="margin-top:22px">
+        Windows 10 and 11 · <span data-tbd title="Confirm the real requirement">16 GB RAM recommended</span> · <span data-tbd title="Confirm whether a Mac build exists">macOS build in progress</span>
+      </p>
+    </div>
+  </section>
+
+  <section id="faq" style="background:var(--surface); border-top:1px solid var(--line-soft)">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Questions</p>
+        <h2>Before you download.</h2>
+      </div>
+      <div class="faq">
+        <details open>
+          <summary>Will retailers accept a synthetically narrated audiobook?</summary>
+          <div class="ans">Policies differ by retailer and several now require you to disclose synthetic narration at upload. The export includes the technical package retailers check against; confirming the disclosure rules for the store you're selling through is your call, and they change often.</div>
+        </details>
+        <details>
+          <summary>Do I keep the rights to the audio?</summary>
+          <div class="ans" data-tbd title="Confirm against your actual licence terms">You own the recordings you generate and can sell them anywhere, on any plan, including after a subscription lapses.</div>
+        </details>
+        <details>
+          <summary>How long does a full-length book take to render?</summary>
+          <div class="ans" data-tbd title="Confirm against your real benchmarks">A 90,000-word manuscript renders in roughly two to three hours on a recent machine, in the background, and you can keep editing later chapters while earlier ones finish.</div>
+        </details>
+        <details>
+          <summary>Can I fix a name the voice keeps mispronouncing?</summary>
+          <div class="ans">Yes — add it once to the book's pronunciation dictionary and every chapter picks up the correction on the next render. Dictionaries carry across a series.</div>
+        </details>
+        <details>
+          <summary>Does my manuscript get uploaded anywhere?</summary>
+          <div class="ans" data-tbd title="Confirm — this is only true if generation is fully local">Rendering runs locally on your own machine. Your manuscript and finished audio stay in the project folder you choose.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap foot">
+    <div>
+      <a class="mark" href="#top" style="text-decoration:none">
+        <svg width="18" height="18" viewBox="0 0 22 22" aria-hidden="true">
+          <rect x="9.8" y="1" width="2.4" height="20" rx="1.2" fill="#E8A33D"/>
+          <rect x="5.4" y="4.5" width="2.4" height="13" rx="1.2" fill="currentColor" opacity=".7"/>
+          <rect x="14.2" y="5.5" width="2.4" height="11" rx="1.2" fill="currentColor" opacity=".7"/>
+        </svg>
+        <span data-tbd>Audiobook Studio</span>
+      </a>
+      <small>Audiobook production software for authors and narrators.</small>
+    </div>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="mailto:hello@example.com" data-tbd title="Swap for your real support address">Support</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var c = document.getElementById('wave');
+  if(!c) return;
+  var ctx = c.getContext('2d');
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Deterministic pseudo-speech envelope: bursts of words separated by breaths.
+  function amp(i){
+    var s = Math.sin(i*0.11)*0.5 + Math.sin(i*0.037)*0.3 + Math.sin(i*0.0091)*0.2;
+    var word = Math.max(0, Math.sin(i*0.045));            // phrase shape
+    var breath = Math.sin(i*0.0061) > 0.82 ? 0.06 : 1;    // pauses between sentences
+    var grain = (Math.sin(i*1.7)*0.5 + Math.sin(i*2.9)*0.5);
+    return Math.min(1, Math.abs(s*0.55 + grain*0.25) * (0.35 + word*0.85) * breath + 0.03);
+  }
+
+  var offset = 0, raf = null;
+
+  function css(name){
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function draw(){
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = c.clientWidth, h = c.clientHeight;
+    if(c.width !== Math.round(w*dpr)){ c.width = Math.round(w*dpr); c.height = Math.round(h*dpr); }
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+
+    var accent = css('--accent') || '#E8A33D';
+    var line   = css('--line') || '#3A2E25';
+    var muted  = css('--muted') || '#A79785';
+
+    var step = 4, bw = 2, mid = h/2, playhead = w*0.52;
+
+    // centre line
+    ctx.strokeStyle = line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, mid+.5); ctx.lineTo(w, mid+.5); ctx.stroke();
+
+    for(var x=0; x<w; x+=step){
+      var i = x/step + offset;
+      var a = amp(i) * (h*0.42);
+      var played = x < playhead;
+      ctx.fillStyle = played ? accent : muted;
+      ctx.globalAlpha = played ? 0.95 : 0.32;
+      ctx.fillRect(x, mid-a, bw, a*2);
+    }
+    ctx.globalAlpha = 1;
+
+    // playhead
+    ctx.strokeStyle = accent; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(playhead, 8); ctx.lineTo(playhead, h-8); ctx.stroke();
+    ctx.fillStyle = accent;
+    ctx.beginPath(); ctx.moveTo(playhead-5, 8); ctx.lineTo(playhead+5, 8); ctx.lineTo(playhead, 15); ctx.closePath(); ctx.fill();
+
+    // chapter boundary markers
+    ctx.setLineDash([3,4]); ctx.strokeStyle = line; ctx.lineWidth = 1;
+    [0.18, 0.79].forEach(function(p){
+      ctx.beginPath(); ctx.moveTo(w*p, 0); ctx.lineTo(w*p, h); ctx.stroke();
+    });
+    ctx.setLineDash([]);
+  }
+
+  function loop(){ offset += 0.35; draw(); raf = requestAnimationFrame(loop); }
+
+  draw();                                  // visible at rest, immediately
+  if(!reduce) raf = requestAnimationFrame(loop);
+
+  window.addEventListener('resize', draw);
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden){ if(raf) cancelAnimationFrame(raf); raf = null; }
+    else if(!reduce && !raf){ raf = requestAnimationFrame(loop); }
+  });
+})();
+</script>
