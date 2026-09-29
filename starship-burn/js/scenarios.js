@@ -131,20 +131,22 @@
 
   /* ------------------------------------------------------------------ */
   const landing = {
-    id: 'landing', order: 3, tag: 'FLIP & LAND', title: 'Landing Burn',
-    brief: 'Ship is falling belly-first at terminal velocity. Plan: light three centre engines, flip to tail-down, shut down to one engine and hover-slam onto the pad.',
+    id: 'landing', order: 3, tag: 'FLIP & CATCH', title: 'Tower Catch',
+    brief: 'Ship is falling belly-first at terminal velocity next to the launch site. Plan: light the three centre engines, flip to tail-down, shut down the middle engine and fly the hover-slam so the catch pins arrive at the tower arms with zero velocity. There is no pad: the chopsticks catch the ship by its pins, so it has to stop exactly there.',
     failureNote: 'Centre engine C3 fails to ignite. Two engines have to do the flip with a third less torque and an off-centre thrust line, and the recorded throttle schedule was computed for three.',
     hints: [
-      'The flip is late and lopsided. Throttle to 100% at ignition: torque scales with thrust, and two engines at full power out-pull three at 60%.',
+      'The flip is late and lopsided. Two engines at about 65% match the thrust the plan expected from three at 45%, so the flip and the deceleration stay close to the recording.',
       'The surviving off-centre engine (C1) rolls the nose; a couple of degrees of positive TRIM balances it during the flip.',
-      'On one engine, watch H.SPEED: a gimballed engine pushes sideways as well as up. Trim well past the balance point (about 6°) so the SAS leans the ship into the tilt and the thrust points straight down.',
-      'The plan shuts down C2 after the flip, which leaves you a single off-centre engine. Its recorded throttle schedule was meant for two engines: you will need more throttle and a bigger trim, or a well-timed shutdown/relight.',
-      'Watch V.SPEED and ALT together. One engine at about 90% holds the planned deceleration; nudge it in the last seconds to touch down under 3 m/s.',
-      'RCS is nearly useless against engine torque, but it can tidy up the final attitude once the engines are throttled down.',
+      'The plan shuts down C2 after the flip, which leaves you a single off-centre engine. Its recorded throttle was meant for two engines: one engine needs roughly double, around 90%.',
+      'On one engine, watch H.SPEED and the offset from the catch point: a gimballed engine pushes sideways as well as up. Trim well past the balance point (about 5°) so the SAS leans the ship into the tilt and the thrust points straight down. Too much and the SAS saturates the other way.',
+      'The arms only catch a ship that arrives within a few metres, slower than 1.5 m/s down and 1 m/s sideways, standing within 3°. Use the last seconds to feather the throttle and steer with small trim changes.',
     ],
-    ship: { dryMass: 120e3, prop: 25e3 },
+    ship: { dryMass: 120e3, prop: 25e3, propComFixed: 39, propTankHeight: 4 },
     initial: { alt: 650, speed: 85, gamma: -90, pitch: 90, enginesOn: [] },
     duration: 30, dt: 0.01, aero: true, view: 'landing',
+    /* Mechazilla: the catch point is where the plan ends; the tower stands dx metres
+       beyond it with the arms reaching back over the catch point at armHeight. */
+    tower: { armHeight: 58, dx: 13, halfWidth: 4.5, height: 146, armReach: 8 },
     plan: {
       throttle0: 0.45,
       events: [{ t: 0, type: 'ignite', engines: ['C1', 'C2', 'C3'] }],
@@ -163,7 +165,7 @@
       throttle(t, st, g, ctx, ship, ci) {
         if (t < this.flipEnd) return 0.45;
         const gl = SB.EARTH.mu / (g.r * g.r);
-        const h = Math.max(g.alt - ci.mp.com * Math.cos(g.pitch), 0);
+        const h = Math.max(g.alt + (ship.catchPinU - ci.mp.com) * Math.cos(g.pitch) - ctx.scn.tower.armHeight, 0);
         const vz = g.vUp, vDes = this.profile(h);
         const running = st.engines.filter(e => e.level > 0).length;
         if (running > 2 && vz >= vDes - 1.5 && !ctx.mem.cut) { ctx.mem.cut = true; ctx.cutoff(['C2']); }
@@ -173,40 +175,47 @@
     },
     failures: [{ t: 0, engine: 'C3', type: 'nolight' }],
     end(t, st, g, ctx, fr) {
-      if (fr.baseAlt <= 0) return { reason: 'touchdown' };
+      const tw = this.tower;
+      if (ctx.towerX != null && g.dr > ctx.towerX + tw.dx - tw.halfWidth - 2 && g.alt < tw.height + 20) return { reason: 'tower' };
+      if (fr.pinAlt <= tw.armHeight && g.vUp < 0 && (ctx.towerX == null || Math.abs(g.dr - ctx.towerX) <= tw.armReach)) return { reason: 'catch' };
+      if (fr.baseAlt <= 0) return { reason: 'ground' };
       if (t >= this.duration - 1e-9) return { reason: 'timeout' };
       return null;
     },
     evaluate(run, ref) {
       const f = last(run), r = run.end.reason, rf = last(ref);
       const rows = [];
-      let success = false, precise = false, outcome;
-      if (lost(r)) outcome = 'RUD — FLIGHT TERMINATED';
-      else if (r !== 'touchdown') outcome = f.prop <= 0 ? 'PROPELLANT DEPLETED' : 'DID NOT LAND IN TIME';
+      let success = false, precise = false, outcome, stars;
+      if (lost(r)) { outcome = 'RUD — FLIGHT TERMINATED'; stars = 0; }
+      else if (r === 'tower') { outcome = 'STRUCK THE TOWER'; stars = 0; }
+      else if (r === 'ground') { outcome = 'MISSED THE ARMS — GROUND IMPACT'; stars = 0; }
+      else if (r !== 'catch') { outcome = f.prop <= 0 ? 'PROPELLANT DEPLETED' : 'NEVER REACHED THE ARMS'; stars = 1; }
       else {
-        const vz = -f.vUp, vx = f.vEast, pitch = f.pitch, rate = f.rate, pad = f.dr - rf.dr;
-        const vzOk = vz <= 3, vxOk = Math.abs(vx) <= 2, attOk = Math.abs(pitch) <= 5, rateOk = Math.abs(rate) <= 3;
-        success = vzOk && vxOk && attOk && rateOk;
-        precise = success && vz <= 1.8 && Math.abs(vx) <= 1 && Math.abs(pitch) <= 3 && Math.abs(pad) <= 12;
-        outcome = success ? 'LANDED' : vz > 3 ? 'HARD LANDING — CRASH' : 'TIPPED OVER';
-        rows.push(row('Vertical speed at touchdown', SB.fmt.n(vz, 1) + ' m/s  (max 3)', vzOk));
-        rows.push(row('Horizontal speed', SB.fmt.n(Math.abs(vx), 1) + ' m/s  (max 2)', vxOk));
-        rows.push(row('Attitude', SB.fmt.n(pitch, 1) + '° from vertical  (max 5°)', attOk));
-        rows.push(row('Body rate', SB.fmt.n(rate, 1) + '°/s  (max 3)', rateOk));
-        rows.push(row('Distance from pad', SB.fmt.n(Math.abs(pad)) + ' m', Math.abs(pad) <= 12));
+        const vz = -f.vUp, vx = f.vEast, pitch = f.pitch, rate = f.rate, dx = f.dr - rf.dr;
+        const vzOk = vz <= 1.5, vxOk = Math.abs(vx) <= 1.0, dxOk = Math.abs(dx) <= 3.5, attOk = Math.abs(pitch) <= 3, rateOk = Math.abs(rate) <= 2;
+        success = vzOk && vxOk && dxOk && attOk && rateOk;
+        precise = success && vz <= 0.8 && Math.abs(vx) <= 0.5 && Math.abs(dx) <= 1.5 && Math.abs(pitch) <= 1.5 && run.rmsDev <= 20;
+        outcome = success ? 'CAUGHT' : (!dxOk || !attOk) ? 'MISSED THE ARMS' : 'HIT THE ARMS TOO HARD';
+        stars = success ? (precise ? 3 : 2) : 0;
+        rows.push(row('Vertical speed at the arms', SB.fmt.n(vz, 1) + ' m/s  (max 1.5)', vzOk));
+        rows.push(row('Horizontal speed', SB.fmt.n(Math.abs(vx), 1) + ' m/s  (max 1)', vxOk));
+        rows.push(row('Offset from catch point', SB.fmt.n(dx, 1) + ' m  (max ±3.5)', dxOk));
+        rows.push(row('Attitude', SB.fmt.n(pitch, 1) + '° from vertical  (max 3°)', attOk));
+        rows.push(row('Body rate', SB.fmt.n(rate, 1) + '°/s  (max 2)', rateOk));
       }
       rows.push(row('Max deviation from line', SB.fmt.km(run.maxDev), run.maxDev <= 60));
       rows.push(row('Δv remaining', SB.fmt.n(f.dv) + ' m/s', f.dv > 0));
       rows.push(row('Peak body rate', SB.fmt.n(peak(run, 'rate'), 1) + '°/s', true));
-      return { success, outcome, stars: lost(r) ? 0 : success ? (precise ? 3 : 2) : (r === 'touchdown' ? 0 : 1), rows };
+      return { success, outcome, stars, rows };
     },
     solution: [
       { t: 0.2, type: 'throttle', value: 0.65 },
-      { t: 0.2, type: 'trim', value: 2.5 },
+      { t: 0.2, type: 'trim', value: 2.0 },
       { t: 6.4, type: 'throttle', value: 0.91 },
-      { t: 6.4, type: 'trim', value: 6.0 },
-      { t: 12, type: 'throttle', value: 0.9 },
-      { t: 14, type: 'throttle', value: 0.85 },
+      { t: 6.4, type: 'trim', value: 4.7 },
+      { t: 13.2, type: 'throttle', value: 1.0 },
+      { t: 14.5, type: 'throttle', value: 0.64 },
+      { t: 15.8, type: 'throttle', value: 0.61 },
     ],
   };
 

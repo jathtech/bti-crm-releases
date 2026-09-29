@@ -21,6 +21,24 @@ the "flight software" and the SAS is deliberately limited, so an asymmetric
 failure saturates it and the ship slowly diverges into a spin unless the player
 re-trims, rebalances the engines or accepts a different trajectory.
 
+## Starship as modelled (js/vehicle.js)
+
+* Ship only (the booster appears as a passive body in the hot-stage mission).
+  52 m long, 9 m diameter, three gimballing sea-level Raptors clustered in the
+  middle and three fixed Raptor Vacuums outboard, in the real hexagonal layout.
+  RVacs never run at sea level; landing uses the centre engines only.
+* Landing propellant comes from the header tanks (LOX header in the nose, CH4
+  header inside the main LOX tank), so the landing ship's centre of mass sits at
+  ~25 m rather than near the engine plane. That changes both the gimbal lever
+  arm and the inertia, which is why the flip needs different trims than the
+  ascent does.
+* Catch pins sit just below the forward flaps (41 m above the engine plane).
+  Ship is caught by the tower's chopstick arms, not landed on legs: the mission
+  ends when the pins reach the arm rails, and it only counts as a catch when
+  the ship is within the arms' reach, nearly stationary and upright.
+* Flaps are drawn but not simulated as control surfaces; the aero model gives
+  the belly-first attitude its stability and damping instead.
+
 ## Physics (js/physics.js)
 
 * 2-D rigid body in an inertial frame with a round Earth (inverse-square
@@ -41,8 +59,8 @@ re-trims, rebalances the engines or accepts a different trajectory.
   thruster pair: torque plus a small lateral force, propellant cost at low Isp.
 * Hazards: recovery % = f(rate error, attitude error vs plan); below 15 % for
   1 s the FTS fires. Structural failure above 5.5 g for 0.5 s. Recontact check
-  against the booster interstage for the hot-stage mission. Propellant
-  depletion kills all engines.
+  against the booster interstage for the hot-stage mission; tower strike and
+  ground impact for the catch. Propellant depletion kills all engines.
 
 ## The interesting bits the puzzles teach
 
@@ -58,7 +76,9 @@ re-trims, rebalances the engines or accepts a different trajectory.
   a longer burn (gravity losses) or a longer separation.
 * **Hover-slam is knife-edge by design.** On one engine the achievable net
   acceleration spans −3.6 to +5.6 m/s²; a 2 % throttle error over 12 s is a
-  hard landing. The rewind tool makes the last-second flare a learnable skill.
+  hard arrival at the arms. The rewind tool makes the last-second flare a
+  learnable skill, and the catch box (±3.5 m, 1.5 m/s down, 1 m/s sideways, 3°)
+  is what "zero velocity at a point" means in practice.
 
 ## Tuning notes
 

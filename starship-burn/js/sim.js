@@ -53,7 +53,8 @@
     const ctx = {
       t: 0, ship, st, scn, mode, log, throttleOverride: null, trim: 0, rcsDir: 0, rcsUntil: -1,
       ftsTimer: 0, gTimer: 0, released: !hasBooster, tRelease: -1, end: null, depleted: false,
-      lastThrottle: scn.plan.throttle0 || 1, mem: {},
+      lastThrottle: scn.plan.throttle0 || 1, mem: {}, ref,
+      towerX: (scn.tower && ref) ? ref.frames[ref.frames.length - 1].dr : null,
     };
     const say = (msg, kind) => log.push({ t: ctx.t, msg, kind: kind || 'info' });
     ctx.say = say;
@@ -178,6 +179,7 @@
       }
       const mp = SB.massProps(ship, st.prop);
       const baseAlt = g.alt - mp.com * Math.cos(g.pitch);
+      const pinAlt = g.alt + (ship.catchPinU - mp.com) * Math.cos(g.pitch);
 
       let recontact = false, sep = 0;
       if (hasBooster) {
@@ -201,7 +203,7 @@
 
       frames.push({
         t, x: st.x, y: st.y, vx: st.vx, vy: st.vy, theta: st.theta, omega: st.omega, prop: st.prop,
-        alt: g.alt, baseAlt, dr: g.dr, speed: g.speed, vUp: g.vUp, vEast: g.vEast, gamma: g.gamma * RAD,
+        alt: g.alt, baseAlt, pinAlt, dr: g.dr, speed: g.speed, vUp: g.vUp, vEast: g.vEast, gamma: g.gamma * RAD,
         pitch: g.pitch * RAD, pitchRef, pitchErr: eTh, rate: st.omega * RAD, rateErr: eOm,
         gimbalCmd, gimbalAct: st.gimbal, gimbalRef, trim: ctx.trim, sas: sasOut, sasSat,
         throttle, throttleRef, engines: st.engines.map(es => ({ state: es.state, level: es.level })),
@@ -219,8 +221,8 @@
         ctx.end = end;
         if (mode === 'ref' && i % 5 !== 0) path.push([g.dr, g.alt]);
         const names = { rud: 'FTS TRIGGERED — RUD', structural: 'STRUCTURAL FAILURE (g-limit)', recontact: 'RECONTACT WITH BOOSTER',
-          seco: 'SECO', touchdown: 'TOUCHDOWN', timeout: 'END OF WINDOW', complete: 'HANDOFF', depleted: 'PROPELLANT DEPLETED' };
-        say(names[end.reason] || end.reason.toUpperCase(), (end.reason === 'rud' || end.reason === 'structural' || end.reason === 'recontact') ? 'bad' : 'info');
+          seco: 'SECO', touchdown: 'TOUCHDOWN', catch: 'ARMS CONTACT', ground: 'GROUND IMPACT', tower: 'TOWER STRIKE', timeout: 'END OF WINDOW', complete: 'HANDOFF', depleted: 'PROPELLANT DEPLETED' };
+        say(names[end.reason] || end.reason.toUpperCase(), (['rud', 'structural', 'recontact', 'ground', 'tower'].indexOf(end.reason) >= 0) ? 'bad' : 'info');
         break;
       }
 

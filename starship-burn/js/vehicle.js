@@ -14,7 +14,8 @@
      trajectory plane (r*cos(azimuth)). */
   SB.SHIP_BASE = {
     name: 'Starship',
-    length: 50, radius: 4.5,
+    length: 52, radius: 4.5,
+    catchPinU: 41,                          // catch pins sit just below the forward flaps, measured from the engine plane
     dryMass: 120e3, prop: 0, propMax: 1200e3,
     dryCom: 22, propComEmpty: 5, propComFull: 17, tankHeightFull: 24,
     engines: [
@@ -44,12 +45,15 @@
     return s;
   };
 
+  /* Landing propellant lives in the header tanks (LOX header in the nose, CH4 header
+     inside the main LOX tank), which is why a landing ship has a higher CoM than its
+     fill level would suggest: scenarios set propComFixed for that. */
   SB.massProps = function (ship, prop) {
     const fill = SB.clamp(prop / ship.propMax, 0, 1);
-    const propCom = SB.lerp(ship.propComEmpty, ship.propComFull, fill);
+    const propCom = ship.propComFixed != null ? ship.propComFixed : SB.lerp(ship.propComEmpty, ship.propComFull, fill);
     const m = ship.dryMass + prop;
     const com = (ship.dryMass * ship.dryCom + prop * propCom) / m;
-    const hp = Math.max(1, ship.tankHeightFull * fill);
+    const hp = ship.propComFixed != null ? (ship.propTankHeight || 4) : Math.max(1, ship.tankHeightFull * fill);
     const I = ship.dryMass * (ship.length * ship.length / 12 + (ship.dryCom - com) * (ship.dryCom - com))
             + prop * (hp * hp / 12 + (propCom - com) * (propCom - com));
     return { m, com, I, L: com };

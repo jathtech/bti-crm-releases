@@ -1,7 +1,8 @@
 # Burn Director — Starship engine-burn puzzles
 
 A small mobile-first game about keeping Starship on its planned trajectory when an
-engine burn goes wrong. You are the flight software: the plan flies itself until
+engine burn goes wrong. It is not a fly-the-whole-launch game: each mission is one
+short burn window and the plan flies itself until something breaks. You are the flight software: the plan flies itself until
 something breaks, then you rewind, place corrections on the timeline and replay.
 
 No build step, no dependencies. Open `index.html` in any modern browser
@@ -19,9 +20,9 @@ npx serve .          # or: python3 -m http.server 8080
 |---|---------|-------------|--------------------------|
 | 1 | **Hot Stage** (tutorial, 25 s) | RVac 3 never lights; the ship rolls off after clamp release and the SAS runs out of authority | ~+4° gimbal trim right after separation, or shut down the opposite RVac |
 | 2 | **RVac Out** (ascent to SECO, ~70 s) | RVac 3 flames out at T+12: less thrust, off-centre torque, thin Δv margin, 5.5 g structural limit | trim to balance, throttle the remaining five up, then step the throttle down as the tanks empty; hit the target orbit |
-| 3 | **Landing Burn** (flip and hover-slam, ~17 s) | centre engine C3 fails to ignite; the recorded flip and throttle schedule were computed for three engines | match the plan's thrust with two engines, trim the lopsided torque, then fly the single-engine hover-slam by hand |
+| 3 | **Tower Catch** (flip and hover-slam to the chopsticks, ~17 s) | centre engine C3 fails to ignite; the recorded flip and throttle schedule were computed for three engines | match the plan's thrust with two engines, trim the lopsided torque, then fly the single-engine hover-slam by hand so the catch pins stop dead at the arm rails |
 
-Every mission is judged on the terminal state (handoff / orbit / touchdown),
+Every mission is judged on the terminal state (handoff / orbit / catch),
 deviation from the planned line, Δv margin and loads. Three stars need a clean
 recovery; a spin below 15% recovery probability triggers the flight termination
 system and the ship is lost.

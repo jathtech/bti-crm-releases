@@ -24,7 +24,7 @@
   function camera(view, f, W, H) {
     if (view === 'ascent') return { dr: f.dr, alt: f.alt, sx: 0.0045, sy: 0.085, cx: W * 0.5, cy: H * 0.5, sprite: 1.15, iso: false };
     if (view === 'landing') {
-      const s = clamp((H - 90) / (Math.max(f.alt, 0) + 70), 0.22, 3.2);
+      const s = clamp((H - 90) / (Math.max(f.alt, 0) + 70), 0.22, 2.4);
       return { dr: f.dr, alt: 0, sx: s, sy: s, cx: W * 0.5, cy: H - 34, sprite: s, iso: true };
     }
     const s = clamp(210 / (Math.max(f.sep || 0, 0) + 140), 0.11, 1.5);
@@ -89,6 +89,10 @@
     const flap = (n0, u0, n1, u1) => poly([[n0, u0], [n1, u0 + 1.5], [n1, u1 - 1], [n0 * 0.95, u1]], opts.ghost ? 'rgba(150,200,255,0.5)' : COL.flap, opts.ghost ? COL.ghost : COL.hullShade);
     flap(R, 3, R + 3.4, 17); flap(-R, 3, -R - 3.4, 17);
     flap(R * 0.85, L - 12, R * 0.85 + 2.4, L - 5.5); flap(-R * 0.85, L - 12, -R * 0.85 - 2.4, L - 5.5);
+    // catch pins
+    const pu = ship.catchPinU || L - 11;
+    poly([[R, pu], [R + 1.1, pu], [R + 1.1, pu + 1.4], [R, pu + 1.4]], opts.ghost ? COL.ghost : '#6b7280', null);
+    poly([[-R, pu], [-R - 1.1, pu], [-R - 1.1, pu + 1.4], [-R, pu + 1.4]], opts.ghost ? COL.ghost : '#6b7280', null);
     // hull
     const hull = [[-R, 0], [R, 0], [R, L - 9], [R * 0.72, L - 4.5], [R * 0.35, L - 1.2], [0, L], [-R * 0.35, L - 1.2], [-R * 0.72, L - 4.5], [-R, L - 9]];
     if (opts.ghost) poly(hull, 'rgba(150,200,255,0.18)', COL.ghost);
@@ -187,11 +191,40 @@
       const [, gy] = toScreen(cam, f.dr, 0);
       ctx.fillStyle = COL.ground; ctx.fillRect(0, gy, W, H - gy);
       ctx.strokeStyle = COL.groundLine; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
-      const padDr = ref.frames[ref.frames.length - 1].dr;
-      const [px] = toScreen(cam, padDr, 0);
-      const pw = Math.max(12, 30 * cam.sx);
-      ctx.fillStyle = COL.pad; ctx.fillRect(px - pw / 2, gy - 3, pw, 4);
-      ctx.fillStyle = COL.dim; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('PAD', px, gy + 14);
+      const catchDr = ref.frames[ref.frames.length - 1].dr;
+      if (scn.tower) {
+        const tw = scn.tower;
+        const [tx0, tyTop] = toScreen(cam, catchDr + tw.dx - tw.halfWidth, tw.height);
+        const [tx1] = toScreen(cam, catchDr + tw.dx + tw.halfWidth, 0);
+        // tower lattice
+        ctx.fillStyle = '#20242c'; ctx.fillRect(tx0, tyTop, tx1 - tx0, gy - tyTop);
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
+        const bay = 9 * cam.sy;
+        if (bay > 6) for (let y = gy; y > tyTop; y -= bay) {
+          ctx.beginPath(); ctx.moveTo(tx0, y); ctx.lineTo(tx1, y - bay); ctx.moveTo(tx1, y); ctx.lineTo(tx0, y - bay); ctx.stroke();
+        }
+        ctx.strokeStyle = '#3a404b'; ctx.lineWidth = 2; ctx.strokeRect(tx0, tyTop, tx1 - tx0, gy - tyTop);
+        // chopstick arms: two beams (near/far) reaching back over the catch point
+        const [ax0, ay] = toScreen(cam, catchDr - tw.armReach, tw.armHeight);
+        const armT = Math.max(3, 2.2 * cam.sy);
+        ctx.fillStyle = '#2f3540'; ctx.fillRect(ax0, ay + armT * 0.6, tx0 - ax0, armT);
+        ctx.fillStyle = '#4b5261'; ctx.fillRect(ax0, ay - armT * 0.4, tx0 - ax0, armT);
+        ctx.fillStyle = COL.pad; ctx.fillRect(ax0, ay - armT * 0.4 - 2, tx0 - ax0, 2);   // rails
+        // catch marker
+        const [cx0] = toScreen(cam, catchDr, tw.armHeight);
+        ctx.strokeStyle = 'rgba(255,209,102,0.6)'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(cx0, ay - 18); ctx.lineTo(cx0, ay + 18); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = COL.pad; ctx.font = 'bold 10px system-ui, sans-serif'; ctx.textAlign = 'right';
+        ctx.fillText('CATCH ' + tw.armHeight + ' m', cx0 - 6, ay - 8);
+        // orbital launch mount, for scale
+        const [mx0, my0] = toScreen(cam, catchDr + tw.dx + tw.halfWidth + 6, 20), [mx1] = toScreen(cam, catchDr + tw.dx + tw.halfWidth + 30, 0);
+        ctx.fillStyle = '#23272f'; ctx.fillRect(mx0, my0, mx1 - mx0, gy - my0);
+      } else {
+        const [px] = toScreen(cam, catchDr, 0);
+        const pw = Math.max(12, 30 * cam.sx);
+        ctx.fillStyle = COL.pad; ctx.fillRect(px - pw / 2, gy - 3, pw, 4);
+        ctx.fillStyle = COL.dim; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('PAD', px, gy + 14);
+      }
+      const px = toScreen(cam, catchDr, 0)[0];
       // scale ticks every 100 m
       ctx.strokeStyle = 'rgba(255,255,255,0.15)';
       const step = 100 * cam.sx;
@@ -222,7 +255,7 @@
     // the ship
     const [sx, sy] = toScreen(cam, f.dr, f.alt);
     const ended = i >= run.frames.length - 1;
-    const boom = ended && (run.end.reason === 'rud' || run.end.reason === 'structural' || run.end.reason === 'recontact' || (run.end.reason === 'touchdown' && run.eval && !run.eval.success));
+    const boom = ended && (run.end.reason === 'rud' || run.end.reason === 'structural' || run.end.reason === 'recontact' || run.end.reason === 'ground' || run.end.reason === 'tower' || ((run.end.reason === 'touchdown' || run.end.reason === 'catch') && run.eval && !run.eval.success));
     if (!(boom && s.rudAge > 0.25)) drawShip(ctx, ship, f, sx, sy, cam.sprite, {});
     if (boom) explosion(ctx, sx, sy, s.rudAge, cam.sprite);
 

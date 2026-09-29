@@ -111,10 +111,10 @@
   function updateTelemetry(f, rf) {
     const ship = app.ship;
     const running = f.engines.filter(e => e.level > 0.5).length;
-    tile('alt', fmt.km(f.alt), app.scn.view === 'landing' ? 'base ' + fmt.n(Math.max(0, f.baseAlt)) + ' m' : 'plan ' + fmt.km(rf.alt));
+    tile('alt', app.scn.tower ? fmt.n(Math.max(0, f.pinAlt - app.scn.tower.armHeight)) + ' m' : fmt.km(f.alt), app.scn.tower ? 'pins above arms' : app.scn.view === 'landing' ? 'base ' + fmt.n(Math.max(0, f.baseAlt)) + ' m' : 'plan ' + fmt.km(rf.alt));
     tile('vel', spd(f.speed), app.scn.target ? 'SECO at ' + app.scn.target.speed : 'plan ' + fmt.n(rf.speed));
     tile('vspd', sspd(f.vUp), 'plan ' + (Math.abs(rf.vUp) >= 100 ? fmt.sn(rf.vUp, 0) : fmt.sn(rf.vUp, 1)));
-    tile('hspd', spd(f.vEast), 'plan ' + (Math.abs(rf.vEast) >= 100 ? fmt.n(rf.vEast, 0) : fmt.n(rf.vEast, 1)));
+    tile('hspd', spd(f.vEast), app.scn.tower ? 'to arms ' + fmt.sn(app.ref.frames[app.ref.frames.length - 1].dr - f.dr, 1) + ' m' : 'plan ' + (Math.abs(rf.vEast) >= 100 ? fmt.n(rf.vEast, 0) : fmt.n(rf.vEast, 1)));
     const pe = Math.abs(f.pitchErr);
     tile('pitch', fmt.n(f.pitch, 1) + '°', 'plan ' + fmt.n(f.pitchRef, 1) + '° Δ' + fmt.sn(f.pitchErr, 1), pe > 10 ? 'bad' : pe > 3 ? 'warn' : '');
     const re = Math.abs(f.rateErr);
@@ -148,7 +148,7 @@
     ctx.clearRect(0, 0, W, H);
     const T = app.scn.duration, x = t => 10 + (W - 20) * t / T;
     // flown span
-    const ok = app.run.eval && app.run.eval.success, lostR = ['rud', 'structural', 'recontact'].indexOf(app.run.end.reason) >= 0 || (app.run.eval && app.run.eval.stars === 0);
+    const ok = app.run.eval && app.run.eval.success, lostR = ['rud', 'structural', 'recontact', 'ground', 'tower'].indexOf(app.run.end.reason) >= 0 || (app.run.eval && app.run.eval.stars === 0);
     ctx.fillStyle = ok ? 'rgba(94,227,154,0.12)' : lostR ? 'rgba(255,93,93,0.12)' : 'rgba(255,209,102,0.10)';
     ctx.fillRect(x(0), 14, x(app.run.duration) - x(0), H - 26);
     // ticks
@@ -163,7 +163,7 @@
     ctx.fillStyle = ok ? SB.COL.good : lostR ? SB.COL.bad : SB.COL.warn;
     ctx.fillRect(xe - 1, 12, 2, H - 24);
     ctx.textAlign = xe > W - 60 ? 'right' : 'left';
-    const endName = { rud: 'RUD', structural: 'BREAKUP', recontact: 'RECONTACT', seco: 'SECO', touchdown: 'TOUCHDOWN', complete: 'HANDOFF', timeout: 'END', depleted: 'DRY' }[app.run.end.reason] || '';
+    const endName = { rud: 'RUD', structural: 'BREAKUP', recontact: 'RECONTACT', seco: 'SECO', touchdown: 'TOUCHDOWN', catch: 'ARMS', ground: 'IMPACT', tower: 'TOWER', complete: 'HANDOFF', timeout: 'END', depleted: 'DRY' }[app.run.end.reason] || '';
     ctx.fillText(endName, xe + (xe > W - 60 ? -4 : 4), 20);
     // failures
     ctx.fillStyle = SB.COL.bad;
