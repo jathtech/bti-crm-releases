@@ -302,7 +302,10 @@
       <div class="btns"><button class="secondary" id="cardReset">Reset progress</button></div>`);
     $('#cardClose').addEventListener('click', hideCard);
     $$('.mission').forEach(m => m.addEventListener('click', () => loadScenario(m.dataset.id)));
-    $('#cardReset').addEventListener('click', () => { if (confirm('Clear stars and saved timelines?')) { localStorage.clear(); app.seen = {}; app.stars = {}; loadScenario(SB.SCENARIOS[0].id); } });
+    $('#cardReset').addEventListener('click', function () {
+      if (this.dataset.armed) { try { localStorage.clear(); } catch (e) { /* ignore */ } app.seen = {}; app.stars = {}; loadScenario(SB.SCENARIOS[0].id); }
+      else { this.dataset.armed = '1'; this.textContent = 'Tap again to clear stars and saved timelines'; }
+    });
   }
   function showHelp() {
     showCard(`<button class="close" id="cardClose">×</button><div class="tag">HOW TO PLAY</div><h1>Stay on the line</h1>
@@ -373,12 +376,13 @@
     window.addEventListener('resize', () => { app.lastTelemetryI = -1; });
   }
 
-  window.addEventListener('DOMContentLoaded', () => {
+  function boot() {
     wire();
     const params = new URLSearchParams(location.search);
     loadScenario(params.get('m') || store.get('current', SB.SCENARIOS[0].id));
     requestAnimationFrame(loop);
-  });
+  }
+  if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', boot); else boot();
   SB.app = app;
   SB.ui = { loadScenario, addAction, seek, setPlaying, showResults, recompute };
 })(globalThis.SB = globalThis.SB || {});
