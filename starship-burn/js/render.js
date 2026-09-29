@@ -157,7 +157,63 @@
     ctx.beginPath(); ctx.arc(x, y, (10 + 140 * age) * Math.max(scale, 0.5), 0, Math.PI * 2); ctx.stroke();
   }
 
-  /* Main scene draw. s = { scn, ship, ref, run, i (frame index), rudAge } */
+  /* Engine ring and attitude dial drawn into any context at (x, y) with the given
+     dial diameter; used as an overlay on the scene. */
+  SB.drawDials = function (ctx, x, y, d, ship, f) {
+    const r = d / 2;
+    // backdrop
+    ctx.fillStyle = 'rgba(5,7,13,0.55)';
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - 4, y - 4, d * 2 + 20, d + 22, 8) : ctx.rect(x - 4, y - 4, d * 2 + 20, d + 22); ctx.fill();
+    // --- engine ring
+    const cx = x + r, cy = y + r;
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+    const k = r / 4.6;
+    ship.engines.forEach((e, i) => {
+      const es = f.engines[i];
+      const ex = cx + e.r * Math.cos(e.az * DEG) * k, ey = cy - e.r * Math.sin(e.az * DEG) * k;
+      const er = e.kind === 'vac' ? 0.95 * k : 0.62 * k;
+      let fill = '#3a3f47', glow = null;
+      if (es.state === 'failed') fill = '#7a2b2b';
+      else if (es.level > 0.02) { fill = es.state === 'shutdown' ? '#a86a2a' : es.state === 'spool' ? '#d9a13a' : '#ffb04a'; glow = es.level; }
+      if (glow) { ctx.fillStyle = `rgba(255,170,70,${0.25 * glow})`; ctx.beginPath(); ctx.arc(ex, ey, er + 3, 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.stroke();
+      if (es.state === 'failed') {
+        ctx.strokeStyle = '#ff5d5d'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(ex - er * 0.6, ey - er * 0.6); ctx.lineTo(ex + er * 0.6, ey + er * 0.6); ctx.moveTo(ex + er * 0.6, ey - er * 0.6); ctx.lineTo(ex - er * 0.6, ey + er * 0.6); ctx.stroke(); ctx.lineWidth = 1;
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = (d > 56 ? 8 : 7) + 'px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(e.id, ex, ey);
+    });
+    ctx.textBaseline = 'alphabetic';
+    const gl = f.gimbalAct * DEG;
+    ctx.strokeStyle = Math.abs(f.gimbalAct) > 0.3 ? '#5ee39a' : 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.sin(gl) * r * 0.9, cy); ctx.stroke();
+    ctx.fillStyle = COL.dim; ctx.font = '8px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('ENGINES', cx, y + d + 12);
+    // --- attitude vs plan
+    const ax = x + d + 12 + r, ay = cy, ar = r;
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(ax, ay, ar, 0, Math.PI * 2); ctx.stroke();
+    const rocket = (ang, color, fill) => {
+      ctx.save(); ctx.translate(ax, ay); ctx.rotate(ang);
+      ctx.beginPath(); ctx.moveTo(0, -ar * 0.8); ctx.lineTo(ar * 0.22, -ar * 0.35); ctx.lineTo(ar * 0.22, ar * 0.6); ctx.lineTo(-ar * 0.22, ar * 0.6); ctx.lineTo(-ar * 0.22, -ar * 0.35); ctx.closePath();
+      if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+      ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.stroke(); ctx.restore();
+    };
+    rocket(0, 'rgba(120,190,255,0.8)', null);
+    rocket(-f.pitchErr * DEG, Math.abs(f.pitchErr) > 10 ? COL.bad : Math.abs(f.pitchErr) > 3 ? COL.warn : COL.good, 'rgba(210,220,235,0.25)');
+    const rate = clamp(f.rateErr / 15, -1, 1);
+    if (Math.abs(rate) > 0.02) {
+      ctx.strokeStyle = Math.abs(f.rateErr) > 8 ? COL.bad : COL.warn; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(ax, ay, ar * 0.9, -Math.PI / 2, -Math.PI / 2 - rate * Math.PI * 0.6, rate > 0); ctx.stroke();
+    }
+    ctx.fillStyle = COL.dim; ctx.font = '8px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('ATTITUDE', ax, y + d + 12);
+  };
+
+  /* Main scene draw. s = { scn, ship, ref, run, i (frame index), rudAge, log } */
   SB.drawScene = function (canvas, s) {
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
@@ -271,6 +327,16 @@
       ctx.fillStyle = f.dev > (view === 'landing' ? 40 : 400) ? COL.bad : COL.warn;
       ctx.font = 'bold 12px system-ui, sans-serif'; ctx.textAlign = 'left';
       ctx.fillText((f.devSign > 0 ? '▲ ' : '▼ ') + SB.fmt.km(f.dev) + ' off line', sx + 26, sy - 18);
+    }
+    // dials (bottom-left) and recent log lines (top-right)
+    const dd = clamp(Math.round(H * 0.2), 44, 64);
+    SB.drawDials(ctx, 10, H - dd - 26, dd, ship, f);
+    if (s.log && s.log.length) {
+      ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'right';
+      s.log.forEach((l, k) => {
+        ctx.fillStyle = l.kind === 'bad' ? COL.bad : l.kind === 'warn' ? COL.warn : l.kind === 'good' ? COL.good : l.kind === 'player' ? COL.ref : COL.dim;
+        ctx.fillText(SB.fmt.t(l.t) + ' ' + l.msg, W - 8, 16 + k * 13);
+      });
     }
     // scale note
     ctx.fillStyle = COL.dim; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'right';
@@ -449,8 +515,7 @@
     line('THIS BURST', MNm(burst.tau), COL.ref, sel.size ? sel.size + ' thruster' + (sel.size > 1 ? 's' : '') + ' · ' + SB.fmt.sn(alpha, 2) + '°/s² ' + (alpha > 0.01 ? '↺' : alpha < -0.01 ? '↻' : '') : 'tap thrusters to select');
     line('ENGINE IMBALANCE', MNm(f.tq.asym), COL.bad);
     line('GIMBAL NOW', MNm(f.tq.gimbal), COL.good);
-    line('NET WITH BURST', MNm(net), '#fff', (net / mp.I * RADS).toFixed(2) + '°/s²');
-    if (sel.size) line('PROPELLANT', burst.mdot.toFixed(0) + ' kg/s', COL.warn, 'sideways force ' + (burst.fn / 1e3).toFixed(0) + ' kN');
+    line('NET WITH BURST', MNm(net), '#fff', (net / mp.I * RADS).toFixed(2) + '°/s²' + (sel.size ? ' · sideways ' + (burst.fn / 1e3).toFixed(0) + ' kN' : ''));
   };
 
   /* Engine ring (viewed from below) and attitude indicator. */

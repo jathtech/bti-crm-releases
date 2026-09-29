@@ -8,7 +8,7 @@ const url = 'file://' + path.resolve(__dirname, '..', 'index.html');
   const errors = [];
   async function shot(page, name) { await page.screenshot({ path: path.join(OUT, name + '.png') }); console.log('shot', name); }
   // ---- phone
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 660 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
   const page = await ctx.newPage();
   page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.type() + ': ' + m.text()); });
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
@@ -97,6 +97,15 @@ const url = 'file://' + path.resolve(__dirname, '..', 'index.html');
   await page.evaluate(() => SB.ui.seek(SB.app.run.duration));
   await page.waitForTimeout(150);
   await shot(page, '14-landing-touchdown');
+  // overflow probe: every tab must fit the phone viewport without page scroll
+  await page.evaluate(() => document.getElementById('overlay').classList.add('hidden'));
+  for (const tab of ['throttle', 'engine', 'trim', 'rcs']) {
+    await page.click(`.tabs button[data-tab="${tab}"]`);
+    await page.waitForTimeout(120);
+    const m = await page.evaluate(() => ({ sh: document.documentElement.scrollHeight, ih: window.innerHeight, bh: document.body.scrollHeight }));
+    console.log(`tab ${tab}: scrollHeight ${m.sh} vs viewport ${m.ih} ${m.sh <= m.ih ? 'fits' : 'OVERFLOWS by ' + (m.sh - m.ih)}`);
+    await shot(page, '16-phone-' + tab);
+  }
   await page.click('#btnMissions');
   await page.waitForTimeout(150);
   await shot(page, '15-missions');

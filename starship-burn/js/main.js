@@ -81,13 +81,12 @@
 
   /* ---------------- drawing ---------------- */
   function draw() {
-    SB.drawScene($('#scene'), { scn: app.scn, ship: app.ship, ref: app.ref, run: app.run, i: app.i, rudAge: app.rudAge });
+    const fNow = frameAt(app.i);
+    SB.drawScene($('#scene'), { scn: app.scn, ship: app.ship, ref: app.ref, run: app.run, i: app.i, rudAge: app.rudAge, log: app.run.log.filter(l => l.t <= fNow.t + 1e-6).slice(-3) });
     if (app.i !== app.lastTelemetryI) {
       app.lastTelemetryI = app.i;
       const f = frameAt(app.i), rf = app.ref.frames[Math.min(app.i, app.ref.frames.length - 1)];
-      SB.drawInset($('#inset'), app.ship, f, rf);
       updateTelemetry(f, rf);
-      updateLog(f.t);
       drawTimeline();
       renderEngineButtons();
       syncControls(f);
@@ -96,13 +95,13 @@
   function syncControls(f) {
     if (!app.thrDragging) { $('#thrSlider').value = Math.round(f.throttle * 100); $('#thrVal').textContent = Math.round(f.throttle * 100) + '%'; }
     const running = f.engines.filter(e => e.level > 0.5).length;
-    $('#thrReadout').innerHTML = `<span class="dim">Now:</span> <b>${running}/6 engines</b> · ${(f.thrust / 1e6).toFixed(1)} MN · <b>${f.gLoad.toFixed(1)} g</b> <span class="dim">(plan ${Math.round(f.throttleRef * 100)}%, structural limit ${app.ship.gLimit} g)</span>`;
+    $('#thrReadout').innerHTML = `<b>${running}/6 engines</b> · ${(f.thrust / 1e6).toFixed(1)} MN · <b>${f.gLoad.toFixed(1)} g</b> <span class="dim">· plan ${Math.round(f.throttleRef * 100)}% · limit ${app.ship.gLimit} g</span>`;
     const trim = app.liveTrim != null ? app.liveTrim : f.trim;
     SB.drawGimbalPad($('#gimbalPad'), app.ship, f, trim);
     const ahead = frameAt(app.i + Math.round(5 / app.run.dt));
-    const satNote = f.sasSat ? ' <span class="bad">SAS saturated: it cannot hold the plan until you trim.</span>' : '';
-    $('#trimReadout').innerHTML = `<span class="dim">Trim</span> <b>${fmt.sn(f.trim, 1)}°</b> <span class="dim">+ SAS</span> ${fmt.sn(f.sas, 1)}° <span class="dim">+ plan</span> ${fmt.sn(f.gimbalRef, 1)}° <span class="dim">= gimbal</span> <b>${fmt.sn(f.gimbalAct, 1)}°</b>${satNote}<br>` +
-      `<span class="dim">In 5 s:</span> attitude error <b class="${Math.abs(ahead.pitchErr) > 10 ? 'bad' : Math.abs(ahead.pitchErr) > 3 ? 'warn' : 'good'}">${fmt.sn(ahead.pitchErr, 1)}°</b>, rate <b class="${Math.abs(ahead.rateErr) > 8 ? 'bad' : Math.abs(ahead.rateErr) > 2 ? 'warn' : 'good'}">${fmt.sn(ahead.rateErr, 1)}°/s</b>, recovery ${Math.round(ahead.recovery * 100)}%`;
+    const satNote = f.sasSat ? ' <span class="bad">SAT</span>' : '';
+    $('#trimReadout').innerHTML = `<span class="dim">Trim</span> <b>${fmt.sn(f.trim, 1)}°</b> <span class="dim">+ SAS</span> ${fmt.sn(f.sas, 1)}° <span class="dim">+ plan</span> ${fmt.sn(f.gimbalRef, 1)}° <span class="dim">=</span> <b>${fmt.sn(f.gimbalAct, 1)}°</b>${satNote} ` +
+      `<span class="dim">· in 5 s:</span> err <b class="${Math.abs(ahead.pitchErr) > 10 ? 'bad' : Math.abs(ahead.pitchErr) > 3 ? 'warn' : 'good'}">${fmt.sn(ahead.pitchErr, 1)}°</b>, rate <b class="${Math.abs(ahead.rateErr) > 8 ? 'bad' : Math.abs(ahead.rateErr) > 2 ? 'warn' : 'good'}">${fmt.sn(ahead.rateErr, 1)}°/s</b>, recovery ${Math.round(ahead.recovery * 100)}%`;
     SB.drawRcsPad($('#rcsPad'), app.ship, f, app.rcsSel, +$('#rcsPower').value / 100);
     const bl = SB.rcsEffect(app.ship, SB.massProps(app.ship, f.prop), Array.from(app.rcsSel), +$('#rcsPower').value / 100);
     const dur = +$('#rcsDur').value;
@@ -114,51 +113,49 @@
     $('#addRcs').disabled = app.rcsSel.size === 0;
   }
 
-  const TILES = [['alt', 'ALT'], ['vel', 'VEL'], ['vspd', 'V.SPEED'], ['hspd', 'H.SPEED'],
-    ['pitch', 'PITCH'], ['rate', 'RATE'], ['gimbal', 'GIMBAL'], ['thr', 'THROTTLE'],
-    ['dv', 'Δv LEFT'], ['g', 'G LOAD'], ['dev', 'OFF LINE'], ['rec', 'RECOVERY']];
+  const TILES = [['alt', 'ALT'], ['vel', 'VEL m/s'], ['vspd', 'V.SPD m/s'], ['hspd', 'H.SPD m/s'], ['pitch', 'PITCH °'], ['rate', 'RATE °/s'],
+    ['gimbal', 'GIMBAL °'], ['thr', 'THR %'], ['dv', 'Δv m/s'], ['g', 'G LOAD'], ['dev', 'OFF LINE'], ['rec', 'RECOV %']];
   function buildTelemetry() {
     const box = $('#telemetry'); box.innerHTML = '';
     TILES.forEach(([k, label]) => {
-      const t = el('div', 'tile', `<div class="l">${label}</div><div class="v" id="v-${k}">—</div><div class="s" id="s-${k}"></div>`);
+      const t = el('div', 'tile', `<div class="l" id="l-${k}">${label}</div><div class="v" id="v-${k}">—</div><div class="s" id="s-${k}"></div>`);
       t.id = 'tile-' + k; box.appendChild(t);
     });
   }
-  function tile(k, v, s, cls) {
+  function tile(k, v, s, cls, label) {
     $('#v-' + k).textContent = v; $('#s-' + k).textContent = s || '';
+    if (label) $('#l-' + k).textContent = label;
     const t = $('#tile-' + k); t.className = 'tile' + (cls ? ' ' + cls : '');
   }
-  const spd = v => (Math.abs(v) >= 100 ? fmt.n(v, 0) : fmt.n(v, 1)) + ' m/s';
-  const sspd = v => (Math.abs(v) >= 100 ? fmt.sn(v, 0) : fmt.sn(v, 1)) + ' m/s';
+  const spd = v => Math.abs(v) >= 100 ? fmt.n(v, 0) : fmt.n(v, 1);
+  const sspd = v => Math.abs(v) >= 100 ? fmt.sn(v, 0) : fmt.sn(v, 1);
+  const altKm = m => Math.abs(m) >= 10000;
   function updateTelemetry(f, rf) {
     const ship = app.ship;
     const running = f.engines.filter(e => e.level > 0.5).length;
-    tile('alt', app.scn.tower ? fmt.n(Math.max(0, f.pinAlt - app.scn.tower.armHeight)) + ' m' : fmt.km(f.alt), app.scn.tower ? 'pins above arms' : app.scn.view === 'landing' ? 'base ' + fmt.n(Math.max(0, f.baseAlt)) + ' m' : 'plan ' + fmt.km(rf.alt));
-    tile('vel', spd(f.speed), app.scn.target ? 'SECO at ' + app.scn.target.speed : 'plan ' + fmt.n(rf.speed));
-    tile('vspd', sspd(f.vUp), 'plan ' + (Math.abs(rf.vUp) >= 100 ? fmt.sn(rf.vUp, 0) : fmt.sn(rf.vUp, 1)));
-    tile('hspd', spd(f.vEast), app.scn.tower ? 'to arms ' + fmt.sn(app.ref.frames[app.ref.frames.length - 1].dr - f.dr, 1) + ' m' : 'plan ' + (Math.abs(rf.vEast) >= 100 ? fmt.n(rf.vEast, 0) : fmt.n(rf.vEast, 1)));
+    if (app.scn.tower) tile('alt', fmt.n(Math.max(0, f.pinAlt - app.scn.tower.armHeight)), 'pins to arms', '', 'ALT m');
+    else if (altKm(f.alt)) tile('alt', (f.alt / 1000).toFixed(1), 'vs ' + (rf.alt / 1000).toFixed(1), '', 'ALT km');
+    else tile('alt', fmt.n(f.alt), 'vs ' + fmt.n(rf.alt), '', 'ALT m');
+    tile('vel', spd(f.speed), app.scn.target ? 'SECO ' + app.scn.target.speed : 'vs ' + spd(rf.speed));
+    tile('vspd', sspd(f.vUp), 'vs ' + sspd(rf.vUp));
+    tile('hspd', spd(f.vEast), app.scn.tower ? 'arms ' + fmt.sn(app.ref.frames[app.ref.frames.length - 1].dr - f.dr, 1) + ' m' : 'vs ' + spd(rf.vEast));
     const pe = Math.abs(f.pitchErr);
-    tile('pitch', fmt.n(f.pitch, 1) + '°', 'plan ' + fmt.n(f.pitchRef, 1) + '° Δ' + fmt.sn(f.pitchErr, 1), pe > 10 ? 'bad' : pe > 3 ? 'warn' : '');
+    tile('pitch', fmt.n(f.pitch, 1), 'err ' + fmt.sn(f.pitchErr, 1) + '°', pe > 10 ? 'bad' : pe > 3 ? 'warn' : '');
     const re = Math.abs(f.rateErr);
-    tile('rate', fmt.sn(f.rate, 1) + '°/s', 'vs plan ' + fmt.sn(f.rateErr, 1), re > 8 ? 'bad' : re > 2 ? 'warn' : '');
-    tile('gimbal', fmt.sn(f.gimbalAct, 1) + '°', (f.sasSat ? 'SAS SAT · ' : 'SAS ' + fmt.sn(f.sas, 1) + ' · ') + 'trim ' + fmt.sn(f.trim, 1), f.sasSat ? 'bad' : Math.abs(f.sas) > 2 ? 'warn' : '');
-    tile('thr', Math.round(f.throttle * 100) + '%', running + '/6 eng · plan ' + Math.round(f.throttleRef * 100) + '%');
-    const propPct = f.prop / ship.prop;
-    tile('dv', fmt.n(f.dv) + ' m/s', Math.round(propPct * 100) + '% propellant', f.dv < 30 ? 'bad' : f.dv < 80 ? 'warn' : '');
-    tile('g', fmt.n(f.gLoad, 1) + ' g', 'limit ' + ship.gLimit.toFixed(1) + ' g', f.gLoad > ship.gLimit ? 'bad' : f.gLoad > ship.gLimit - 0.5 ? 'warn' : '');
+    tile('rate', fmt.sn(f.rate, 1), 'err ' + fmt.sn(f.rateErr, 1), re > 8 ? 'bad' : re > 2 ? 'warn' : '');
+    tile('gimbal', fmt.sn(f.gimbalAct, 1), f.sasSat ? 'SAS SAT' : 'SAS ' + fmt.sn(f.sas, 1), f.sasSat ? 'bad' : Math.abs(f.sas) > 2 ? 'warn' : '');
+    tile('thr', Math.round(f.throttle * 100), running + '/6 eng');
+    tile('dv', fmt.n(f.dv), Math.round(f.prop / ship.prop * 100) + '% prop', f.dv < 30 ? 'bad' : f.dv < 80 ? 'warn' : '');
+    tile('g', fmt.n(f.gLoad, 1), 'limit ' + ship.gLimit.toFixed(1), f.gLoad > ship.gLimit ? 'bad' : f.gLoad > ship.gLimit - 0.5 ? 'warn' : '');
     const devBad = app.scn.view === 'landing' ? 40 : 400, devWarn = devBad / 4;
-    tile('dev', fmt.km(f.dev), f.dev > 1 ? (f.devSign > 0 ? 'above / ahead' : 'below / behind') : 'on the line', f.dev > devBad ? 'bad' : f.dev > devWarn ? 'warn' : 'good');
-    tile('rec', Math.round(f.recovery * 100) + '%', f.fts > 0 ? 'FTS ARMING ' + (f.fts).toFixed(1) + ' s' : 'FTS below 15%', f.recovery < 0.3 ? 'bad' : f.recovery < 0.7 ? 'warn' : 'good');
+    if (altKm(f.dev)) tile('dev', (f.dev / 1000).toFixed(1), f.devSign > 0 ? 'above' : 'below', 'bad', 'OFF LINE km');
+    else tile('dev', fmt.n(f.dev), f.dev > 1 ? (f.devSign > 0 ? 'above' : 'below') : 'on line', f.dev > devBad ? 'bad' : f.dev > devWarn ? 'warn' : 'good', 'OFF LINE m');
+    tile('rec', Math.round(f.recovery * 100), f.fts > 0 ? 'FTS ' + f.fts.toFixed(1) + ' s' : 'FTS at 15', f.recovery < 0.3 ? 'bad' : f.recovery < 0.7 ? 'warn' : 'good');
     $('#met').textContent = fmt.t(f.t);
-    // banner: latest important event in the last 3 s
     const recent = app.run.log.filter(l => l.t <= f.t + 1e-6 && l.t > f.t - 3 && l.kind !== 'info');
     const b = $('#banner');
     if (recent.length) { const l = recent[recent.length - 1]; b.textContent = l.msg; b.className = 'banner ' + l.kind; }
     else { b.textContent = ''; b.className = 'banner'; }
-  }
-  function updateLog(t) {
-    const lines = app.run.log.filter(l => l.t <= t + 1e-6).slice(-4);
-    $('#log').innerHTML = lines.map(l => `<div class="${l.kind}">${fmt.t(l.t)} ${l.msg}</div>`).join('') || '<div>Telemetry nominal.</div>';
   }
 
   /* ---------------- timeline ---------------- */
@@ -239,7 +236,10 @@
   }
   function renderChips() {
     const box = $('#chips'); box.innerHTML = '';
-    if (!app.actions.length) { box.appendChild(el('span', 'empty', 'No actions yet. Scrub the timeline to a moment, pick a control above and set it.')); return; }
+    if (!app.actions.length) { box.appendChild(el('span', 'empty', 'No actions yet: scrub to a moment and use a control.')); return; }
+    const clr = el('button', 'link clear', 'clear all');
+    clr.addEventListener('click', () => { app.actions = []; recompute(); app.lastTelemetryI = -1; });
+    box.appendChild(clr);
     app.actions.forEach(a => {
       const ch = el('div', 'chip ' + a.type, `<span>${fmt.t(a.t)}</span><b>${describe(a)}</b><button class="x" title="remove">×</button>`);
       ch.addEventListener('click', ev => { if (ev.target.classList.contains('x')) return; setPlaying(false); seek(a.t); app.lastTelemetryI = -1; });
@@ -341,6 +341,8 @@
       <ul>
         <li><b>Timeline</b>: drag to scrub. Every action you add applies from that moment on, and the whole flight is re-simulated instantly, so you can rewind and try again as often as you like.</li>
         <li><b>Throttle</b> sets all running engines (40–100%). <b>Engines</b> shut down or relight individual Raptors; relights can fail for good. <b>Gimbal</b> is a drag pad: point the centre-engine flame, read the moment it makes against the engine imbalance, and match it. The SAS adds up to ±3° on top to hold the plan. <b>RCS</b>: pick thrusters on the ship and fire a timed burst.</li>
+        <li><b>Gimbal pad</b>: red arc is the moment from the engine imbalance, green the moment your gimbal makes, white what is left. The yellow tick on the protractor is the trim that cancels the imbalance (MATCH sets it, CENTER zeroes it). SAT means the SAS has used all of its ±3°.</li>
+        <li><b>RCS pad</b>: tap thrusters on the ship, set power and burst length, fire. A nose and an aft thruster on opposite sides make a pure couple.</li>
         <li><b>Recovery</b> falls as body rate and attitude error grow. Below 15% for one second the flight termination system fires and the ship is lost.</li>
         <li>The result is judged on the terminal state (orbit, handoff or touchdown), deviation from the line, Δv margin and structural load.</li>
       </ul>
@@ -413,7 +415,6 @@
     rcsPower.addEventListener('input', () => { $('#rcsPowerVal').textContent = rcsPower.value + '%'; app.lastTelemetryI = -1; });
     dur.addEventListener('input', () => { $('#rcsDurVal').textContent = (+dur.value).toFixed(1) + ' s'; app.lastTelemetryI = -1; });
     $('#addRcs').addEventListener('click', () => { if (app.rcsSel.size) addAction({ type: 'rcs', thrusters: Array.from(app.rcsSel), power: +rcsPower.value / 100, duration: +dur.value }); });
-    $('#btnClear').addEventListener('click', () => { app.actions = []; recompute(); app.lastTelemetryI = -1; });
     $('#btnMissions').addEventListener('click', showMissions);
     $('#btnHelp').addEventListener('click', showHelp);
     $('#overlay').addEventListener('click', e => { if (e.target === e.currentTarget && app.mode !== 'intro') hideCard(); });
