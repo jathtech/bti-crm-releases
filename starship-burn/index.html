@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b0e14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Burn Director</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <header class="bar">
+    <button id="btnMissions" class="icon" title="Missions">☰</button>
+    <div class="title"><span id="scnTitle">—</span><span id="scnTag" class="tag"></span></div>
+    <span id="modeLabel" class="mode"></span>
+    <button id="btnHelp" class="icon" title="How to play">?</button>
+  </header>
+
+  <div class="left">
+    <section class="scene">
+      <canvas id="scene"></canvas>
+      <div class="hud">
+        <div class="met" id="met">T+0.0</div>
+        <div class="banner" id="banner"></div>
+      </div>
+    </section>
+    <section class="telemetry" id="telemetry"></section>
+    <section class="insetRow">
+      <canvas id="inset"></canvas>
+      <div class="log" id="log"></div>
+    </section>
+  </div>
+
+  <div class="right">
+    <section class="timeline">
+      <canvas id="timeline"></canvas>
+      <div class="transport">
+        <button id="btnRewind" title="Rewind">⏮</button>
+        <button id="btnBack" title="Back 1 s">−1s</button>
+        <button id="btnPlay" class="play" title="Play / pause">▶</button>
+        <button id="btnFwd" title="Forward 1 s">+1s</button>
+        <button id="btnEnd" title="Jump to end">⏭</button>
+        <div class="speed"><button data-speed="1" class="on">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button></div>
+      </div>
+    </section>
+
+    <section class="actions">
+      <div class="tabs">
+        <button data-tab="throttle" class="on">THROTTLE</button>
+        <button data-tab="engine">ENGINES</button>
+        <button data-tab="trim">GIMBAL</button>
+        <button data-tab="rcs">RCS</button>
+      </div>
+
+      <div class="pane on" id="pane-throttle">
+        <div class="row"><input type="range" min="40" max="100" step="1" value="100" id="thrSlider"><span class="val" id="thrVal">100%</span></div>
+        <div class="row quick">
+          <button data-thr="0.4">40%</button><button data-thr="0.6">60%</button><button data-thr="0.8">80%</button><button data-thr="1">100%</button><button data-thr="plan">PLAN</button>
+        </div>
+        <button class="add" id="addThr">SET THROTTLE AT <span class="at"></span></button>
+        <p class="help">All running engines share one throttle (40–100%). PLAN hands control back to the recorded schedule.</p>
+      </div>
+
+      <div class="pane" id="pane-engine">
+        <div class="engines" id="engineButtons"></div>
+        <p class="help">Shutting an engine down is safe. Relighting is a roll of the dice: centre engines relight 85% of the time, RVacs 70%, and a failed relight is permanent. Spool-up takes 1.6 s.</p>
+      </div>
+
+      <div class="pane" id="pane-trim">
+        <div class="row"><input type="range" min="-10" max="10" step="0.1" value="0" id="trimSlider"><span class="val" id="trimVal">+0.0°</span></div>
+        <div class="row quick">
+          <button data-trim="-2">−2°</button><button data-trim="-0.5">−½°</button><button data-trim="0">0</button><button data-trim="+0.5">+½°</button><button data-trim="+2">+2°</button>
+        </div>
+        <button class="add" id="addTrim">SET GIMBAL TRIM AT <span class="at"></span></button>
+        <p class="help">Swivels the three centre engines together. Positive trim torques the nose counter-clockwise (↺). The SAS adds up to ±3° on top of your trim to hold the planned attitude; if it shows SAT it has run out.</p>
+      </div>
+
+      <div class="pane" id="pane-rcs">
+        <div class="row"><input type="range" min="0.5" max="4" step="0.5" value="1" id="rcsDur"><span class="val" id="rcsDurVal">1.0 s</span></div>
+        <div class="row quick two">
+          <button class="add" id="addRcsCcw">↺ VENT (CCW) AT <span class="at"></span></button>
+          <button class="add" id="addRcsCw">↻ VENT (CW) AT <span class="at"></span></button>
+        </div>
+        <p class="help">Vents propellant sideways from the nose thrusters for the chosen duration. Weak against engine torque, but it works with the engines off and costs Δv.</p>
+      </div>
+
+      <div class="chipsHead"><span>TIMELINE ACTIONS</span><button id="btnClear" class="link">clear all</button></div>
+      <div class="chips" id="chips"></div>
+    </section>
+  </div>
+
+  <div class="overlay hidden" id="overlay"><div class="card" id="card"></div></div>
+</div>
+<script src="js/util.js"></script>
+<script src="js/vehicle.js"></script>
+<script src="js/physics.js"></script>
+<script src="js/controller.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/scenarios.js"></script>
+<script src="js/render.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
