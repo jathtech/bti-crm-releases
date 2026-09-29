@@ -35,9 +35,19 @@ const url = 'file://' + path.resolve(__dirname, '..', 'index.html');
   // add a trim action via the UI: seek to 2.0 via the API then use the GIMBAL tab
   await page.evaluate(() => { SB.ui.seek(2.0); SB.app.lastTelemetryI = -1; });
   await page.click('.tabs button[data-tab="trim"]');
-  await page.fill('#trimSlider', '4');
-  await page.click('#addTrim');
   await page.waitForTimeout(150);
+  await page.locator('#gimbalPad').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(100);
+  await shot(page, '06a-gimbal-pad-before');
+  // drag the gimbal pad: 44 px to the left ~ +4 degrees of trim
+  const gpBox = await page.locator('#gimbalPad').boundingBox();
+  await page.mouse.move(gpBox.x + gpBox.width * 0.3, gpBox.y + gpBox.height * 0.6);
+  await page.mouse.down();
+  for (let k = 1; k <= 8; k++) { await page.mouse.move(gpBox.x + gpBox.width * 0.3 - k * 5.5, gpBox.y + gpBox.height * 0.6); await page.waitForTimeout(30); }
+  await page.mouse.up();
+  await page.waitForTimeout(200);
+  const trimNow = await page.evaluate(() => SB.app.actions.map(a => a.type + ':' + a.value).join(','));
+  console.log('actions after pad drag:', trimNow);
   await shot(page, '06-edit-trim-added');
   await page.evaluate(() => { SB.ui.seek(SB.app.run.duration); SB.app.lastTelemetryI = -1; });
   await page.waitForTimeout(150);
@@ -72,7 +82,18 @@ const url = 'file://' + path.resolve(__dirname, '..', 'index.html');
   await page.evaluate(() => { SB.app.actions = SB.scenarioById('landing').solution.map(a => Object.assign({}, a)); SB.ui.recompute(); SB.ui.seek(13); SB.app.lastTelemetryI = -1; });
   await page.click('.tabs button[data-tab="rcs"]');
   await page.waitForTimeout(150);
-  await shot(page, '13-landing-solution-t13');
+  // tap the nose-starboard and aft-port thrusters, then fire
+  await page.locator('#rcsPad').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(100);
+  const hits = await page.evaluate(() => document.getElementById('rcsPad')._hits);
+  const rpBox = await page.locator('#rcsPad').boundingBox();
+  for (const id of ['NR', 'TL']) { const h = hits.find(x => x.id === id); await page.mouse.click(rpBox.x + h.x, rpBox.y + h.y); await page.waitForTimeout(80); }
+  await page.waitForTimeout(150);
+  await shot(page, '13-landing-rcs-pad');
+  await page.click('#addRcs');
+  await page.waitForTimeout(150);
+  console.log('rcs action:', await page.evaluate(() => JSON.stringify(SB.app.actions.filter(a => a.type === 'rcs'))));
+  await page.evaluate(() => { SB.app.actions = SB.app.actions.filter(a => a.type !== 'rcs'); SB.ui.recompute(); });
   await page.evaluate(() => SB.ui.seek(SB.app.run.duration));
   await page.waitForTimeout(150);
   await shot(page, '14-landing-touchdown');

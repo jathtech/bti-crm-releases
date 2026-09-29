@@ -62,31 +62,33 @@
         <div class="row quick">
           <button data-thr="0.4">40%</button><button data-thr="0.6">60%</button><button data-thr="0.8">80%</button><button data-thr="1">100%</button><button data-thr="plan">PLAN</button>
         </div>
-        <button class="add" id="addThr">SET THROTTLE AT <span class="at"></span></button>
-        <p class="help">All running engines share one throttle (40–100%). PLAN hands control back to the recorded schedule.</p>
+        <div class="readout" id="thrReadout"></div>
+        <p class="help">Moving the slider sets the throttle from the playhead onward and re-flies the rest of the mission instantly; the faint dotted line in the flight view is where you are now headed. PLAN hands control back to the recorded schedule.</p>
       </div>
 
       <div class="pane" id="pane-engine">
         <div class="engines" id="engineButtons"></div>
-        <p class="help">Shutting an engine down is safe. Relighting is a roll of the dice: centre engines relight 85% of the time, RVacs 70%, and a failed relight is permanent. Spool-up takes 1.6 s.</p>
+        <div class="readout" id="engReadout"></div>
+        <p class="help">Each engine's moment about the centre of mass is shown: an outboard engine with no partner is what rolls the ship. Shutting one down is safe; relighting is a roll of the dice (centre 85%, RVac 70%) and a failed relight is permanent. Spool-up takes 1.6 s.</p>
       </div>
 
       <div class="pane" id="pane-trim">
-        <div class="row"><input type="range" min="-10" max="10" step="0.1" value="0" id="trimSlider"><span class="val" id="trimVal">+0.0°</span></div>
+        <canvas id="gimbalPad"></canvas>
         <div class="row quick">
-          <button data-trim="-2">−2°</button><button data-trim="-0.5">−½°</button><button data-trim="0">0</button><button data-trim="+0.5">+½°</button><button data-trim="+2">+2°</button>
+          <button data-trim="-1">−1°</button><button data-trim="-0.2">−0.2°</button><button id="trimCenter">RECENTER</button><button data-trim="+0.2">+0.2°</button><button data-trim="+1">+1°</button>
         </div>
-        <button class="add" id="addTrim">SET GIMBAL TRIM AT <span class="at"></span></button>
-        <p class="help">Swivels the three centre engines together. Positive trim torques the nose counter-clockwise (↺). The SAS adds up to ±3° on top of your trim to hold the planned attitude; if it shows SAT it has run out.</p>
+        <button class="add" id="trimMatch">MATCH THE IMBALANCE</button>
+        <div class="readout" id="trimReadout"></div>
+        <p class="help">Drag left or right to swivel the three centre engines (up to ±10° of trim). The flame points where the engines point; the nose swings the same way. Red arc: moment from the engine imbalance. Green arc: moment from the gimbal. White: what is left over. The SAS adds up to ±3° on top of your trim to hold the plan; when it shows SAT it has run out.</p>
       </div>
 
       <div class="pane" id="pane-rcs">
-        <div class="row"><input type="range" min="0.5" max="4" step="0.5" value="1" id="rcsDur"><span class="val" id="rcsDurVal">1.0 s</span></div>
-        <div class="row quick two">
-          <button class="add" id="addRcsCcw">↺ VENT (CCW) AT <span class="at"></span></button>
-          <button class="add" id="addRcsCw">↻ VENT (CW) AT <span class="at"></span></button>
-        </div>
-        <p class="help">Vents propellant sideways from the nose thrusters for the chosen duration. Weak against engine torque, but it works with the engines off and costs Δv.</p>
+        <canvas id="rcsPad"></canvas>
+        <div class="row"><span class="lbl">POWER</span><input type="range" min="25" max="100" step="25" value="100" id="rcsPower"><span class="val" id="rcsPowerVal">100%</span></div>
+        <div class="row"><span class="lbl">BURST</span><input type="range" min="0.5" max="4" step="0.5" value="1" id="rcsDur"><span class="val" id="rcsDurVal">1.0 s</span></div>
+        <button class="add" id="addRcs">FIRE AT <span class="at"></span></button>
+        <div class="readout" id="rcsReadout"></div>
+        <p class="help">Tap thrusters on the ship to pick them. Each vents propellant sideways; a nose and an aft thruster on opposite sides make a pure couple. The blue arc is the moment of the burst, the red arc the engine imbalance it is up against. Weak next to the engines, but it works with them off, and it costs Δv.</p>
       </div>
 
       <div class="chipsHead"><span>TIMELINE ACTIONS</span><button id="btnClear" class="link">clear all</button></div>

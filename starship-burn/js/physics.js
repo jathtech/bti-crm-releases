@@ -65,7 +65,8 @@
 
     const ux = Math.cos(st.theta), uy = Math.sin(st.theta);
     const nx = uy, ny = -ux;
-    let Fn = 0, Fu = 0, tau = 0, mdot = 0, thrust = 0, centerF = 0;
+    let Fn = 0, Fu = 0, tau = 0, mdot = 0, thrust = 0, centerF = 0, tqAsym = 0, tqGimbal = 0, tqRcs = 0, tqAero = 0;
+    const engTq = new Array(ship.engines.length).fill(0);
     const thr = SB.clamp(ctrl.throttle, ship.minThrottle, 1);
     for (let i = 0; i < ship.engines.length; i++) {
       const e = ship.engines[i], es = st.engines[i];
@@ -76,15 +77,14 @@
       let fn = 0, fu = F;
       if (e.gimbal) { fn = F * sd; fu = F * cd; centerF += F; }
       Fn += fn; Fu += fu;
-      tau += e.lateral * fu + mp.L * fn;
+      const tA = e.lateral * fu, tG = mp.L * fn;   // off-centre thrust vs gimbal deflection
+      tau += tA + tG; tqAsym += tA; tqGimbal += tG; engTq[i] = tA;
       mdot += es.level * thr * SB.engineMdot(e);
     }
-    const rcs = st.prop > 0 ? (ctrl.rcs || 0) : 0;
+    const rcs = (st.prop > 0 && ctrl.rcs && ctrl.rcs.thrusters && ctrl.rcs.thrusters.length) ? ctrl.rcs : null;
     if (rcs) {
-      const F = ship.rcs.force, arm = ship.length - mp.com;
-      Fn += -rcs * F;              // nose thrusters push the nose to -n ...
-      tau += rcs * F * arm;        // ... which is a positive (CCW) torque for rcs = +1
-      mdot += F / (ship.rcs.isp * G0);
+      const r = SB.rcsEffect(ship, mp, rcs.thrusters, rcs.power);
+      Fn += r.fn; tau += r.tau; tqRcs = r.tau; mdot += r.mdot;
     }
     let Fx = Fn * nx + Fu * ux, Fy = Fn * ny + Fu * uy;
     let q = 0, aoa = 0, drag = 0;
@@ -98,7 +98,8 @@
         const cda = ship.aero.cdaAxial + (ship.aero.cdaBroad - ship.aero.cdaAxial) * sinA * sinA;
         drag = q * cda;
         Fx -= drag * vhx; Fy -= drag * vhy;
-        tau += ship.aero.cm * q * Math.sin(2 * aoa) - ship.aero.damp * q * st.omega;
+        tqAero = ship.aero.cm * q * Math.sin(2 * aoa) - ship.aero.damp * q * st.omega;
+        tau += tqAero;
       }
     }
     const gmag = E.mu / (r * r);
@@ -112,6 +113,7 @@
     return {
       m: mp.m, I: mp.I, L: mp.L, com: mp.com, thrust, centerF, tau, alpha, mdot, q, aoa, drag,
       pAmb: atm.p, gLoad: Math.hypot(Fx, Fy) / mp.m / G0, rcs,
+      tq: { asym: tqAsym, gimbal: tqGimbal, rcs: tqRcs, aero: tqAero, net: tau }, engTq,
     };
   };
 
@@ -145,7 +147,8 @@
     bst.theta = st.theta; bst.vx = st.vx; bst.vy = st.vy;
     const off = mp.com + (booster.length - booster.com);
     bst.x = st.x - off * ux; bst.y = st.y - off * uy;
-    return { m: mp.m, I: mp.I, L: mp.L, com: mp.com, thrust, centerF: 0, tau: 0, alpha: 0, mdot, q: 0, aoa: 0, drag: 0, pAmb: atm.p, gLoad: F / mtot / G0, rcs: 0 };
+    return { m: mp.m, I: mp.I, L: mp.L, com: mp.com, thrust, centerF: 0, tau: 0, alpha: 0, mdot, q: 0, aoa: 0, drag: 0, pAmb: atm.p, gLoad: F / mtot / G0, rcs: null,
+      tq: { asym: 0, gimbal: 0, rcs: 0, aero: 0, net: 0 }, engTq: new Array(ship.engines.length).fill(0) };
   };
 
   /* Free booster after release: axial thrust tail-off, gravity, simple drag, no rotation. */

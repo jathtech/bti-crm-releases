@@ -30,7 +30,11 @@
     minThrottle: 0.4,
     spoolUp: 1.6, spoolDown: 0.6,          // s
     relightP: { center: 0.85, vac: 0.70 }, // probability an in-flight relight succeeds
-    rcs: { force: 60e3, isp: 90 },         // N, s  (venting propellant sideways)
+    /* RCS: hot-gas thrusters fed from the tank ullage, in the nose and the aft skirt.
+       side = which way the exhaust goes (+1 = starboard/+n); force is per thruster. */
+    rcs: { force: 60e3, isp: 90, thrusters: {
+      NL: { u: 47, side: -1, name: 'nose, port' }, NR: { u: 47, side: 1, name: 'nose, starboard' },
+      TL: { u: 7, side: -1, name: 'aft, port' }, TR: { u: 7, side: 1, name: 'aft, starboard' } } },
     sas: { kp: 1.0, kd: 1.4, authority: 3.0 }, // deg per deg, deg per deg/s, deg
     gLimit: 5.5,                            // structural limit, g
     aero: { cdaAxial: 60, cdaBroad: 400, cm: 400, damp: 1500 },
@@ -77,6 +81,18 @@
       case 'on': es.level = 1; break;
       default: es.level = 0;
     }
+  };
+
+  /* Force, torque and mass flow of an RCS selection about the current CoM. */
+  SB.rcsEffect = function (ship, mp, thrusters, power) {
+    let fn = 0, tau = 0, mdot = 0;
+    (thrusters || []).forEach(id => {
+      const th = ship.rcs.thrusters[id]; if (!th) return;
+      const F = ship.rcs.force * (power || 1);
+      const f = -th.side * F;              // exhaust to one side pushes the vehicle the other way
+      fn += f; tau += -(th.u - mp.com) * f; mdot += F / (ship.rcs.isp * G0);
+    });
+    return { fn, tau, mdot };
   };
 
   /* Remaining delta-v with the currently running engines' mean Isp (falls back to

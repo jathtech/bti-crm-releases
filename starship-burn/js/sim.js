@@ -51,7 +51,7 @@
     const hasBooster = !!scn.booster;
     const bst = hasBooster ? { x: 0, y: 0, vx: 0, vy: 0, theta: st.theta, mass: scn.booster.mass, thrustNow: 0 } : null;
     const ctx = {
-      t: 0, ship, st, scn, mode, log, throttleOverride: null, trim: 0, rcsDir: 0, rcsUntil: -1,
+      t: 0, ship, st, scn, mode, log, throttleOverride: null, trim: 0, rcs: null,
       ftsTimer: 0, gTimer: 0, released: !hasBooster, tRelease: -1, end: null, depleted: false,
       lastThrottle: scn.plan.throttle0 || 1, mem: {}, ref,
       towerX: (scn.tower && ref) ? ref.frames[ref.frames.length - 1].dr : null,
@@ -108,8 +108,11 @@
         case 'throttle': ctx.throttleOverride = a.value; say('Throttle → ' + (a.value == null ? 'plan schedule' : Math.round(a.value * 100) + '%'), 'player'); break;
         case 'trim': ctx.trim = a.value; say('Gimbal trim → ' + SB.fmt.sn(a.value, 1) + '°', 'player'); break;
         case 'engine': if (a.cmd === 'on') ignite(a.engine, 'player'); else shutdown(a.engine, 'player'); break;
-        case 'rcs': ctx.rcsDir = a.dir; ctx.rcsUntil = ctx.t + a.duration;
-          say('RCS ' + (a.dir > 0 ? 'CCW' : 'CW') + ' for ' + a.duration.toFixed(1) + ' s', 'player'); break;
+        case 'rcs': {
+          const thrusters = a.thrusters || (a.dir > 0 ? ['NR'] : ['NL']);   // old saves used dir
+          ctx.rcs = { thrusters, power: a.power || 1, until: ctx.t + a.duration };
+          say('RCS ' + thrusters.join('+') + ' ' + Math.round((a.power || 1) * 100) + '% for ' + a.duration.toFixed(1) + ' s', 'player'); break;
+        }
       }
     }
 
@@ -144,7 +147,7 @@
 
       const g = SB.geom(st);
       const atm = SB.atmo(g.alt);
-      let throttle, throttleRef, gimbalRef, gimbalCmd, sasOut = 0, sasSat = false, thetaRef, omegaRef, rcs = 0, pitchRef;
+      let throttle, throttleRef, gimbalRef, gimbalCmd, sasOut = 0, sasSat = false, thetaRef, omegaRef, rcs = null, pitchRef;
       if (mode === 'ref') {
         const ci0 = SB.controlInfo(st, ship, ctx.lastThrottle, atm.p);
         throttle = SB.clamp(scn.plan.throttle(t, st, g, ctx, ship, ci0), ship.minThrottle, 1);
@@ -160,7 +163,7 @@
         const s = SB.sas(st, ship, thetaRef, omegaRef);
         sasOut = s.out; sasSat = s.sat && ctx.released;
         gimbalCmd = ctx.released ? gimbalRef + ctx.trim + sasOut : 0;
-        rcs = t < ctx.rcsUntil ? ctx.rcsDir : 0;
+        rcs = (ctx.rcs && t < ctx.rcs.until) ? ctx.rcs : null;
         pitchRef = rf.pitch;
         if (sasSat && !saidSat) { saidSat = true; say('SAS SATURATED — gimbal authority exceeded', 'warn'); }
         if (!sasSat) saidSat = false;
@@ -179,6 +182,10 @@
       }
       const mp = SB.massProps(ship, st.prop);
       const baseAlt = g.alt - mp.com * Math.cos(g.pitch);
+      // torque bookkeeping for the instruments (from the last step; zero before the first)
+      const tq = info ? info.tq : { asym: 0, gimbal: 0, rcs: 0, aero: 0, net: 0 };
+      const centerF = info ? info.centerF : 0;
+      const gimbalBalance = centerF > 1 ? Math.asin(SB.clamp(-tq.asym / (centerF * mp.L), -1, 1)) * RAD : null;
       const pinAlt = g.alt + (ship.catchPinU - mp.com) * Math.cos(g.pitch);
 
       let recontact = false, sep = 0;
@@ -208,7 +215,9 @@
         gimbalCmd, gimbalAct: st.gimbal, gimbalRef, trim: ctx.trim, sas: sasOut, sasSat,
         throttle, throttleRef, engines: st.engines.map(es => ({ state: es.state, level: es.level })),
         thrust: info ? info.thrust : 0, gLoad: info ? info.gLoad : 0, mass: mp.m,
-        dv: SB.deltaV(ship, st), rcs, recovery, fts: ctx.ftsTimer, dev, devSign, released: ctx.released, sep,
+        dv: SB.deltaV(ship, st), rcs: rcs ? { thrusters: rcs.thrusters, power: rcs.power } : null, recovery, fts: ctx.ftsTimer, dev, devSign, released: ctx.released, sep,
+        tq, engTq: info ? info.engTq : ship.engines.map(() => 0), alphaDeg: info ? info.alpha * RAD : 0, centerF, I: mp.I, com: mp.com,
+        gimbalBalance, trimBalance: gimbalBalance == null ? null : gimbalBalance - gimbalRef,
         booster: bst ? { x: bst.x, y: bst.y, theta: bst.theta, thrust: bst.thrustNow } : null,
       });
 

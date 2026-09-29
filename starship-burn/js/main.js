@@ -14,6 +14,7 @@
     scn: null, ship: null, ref: null, run: null, actions: [],
     i: 0, t: 0, playing: false, speed: 1, rudAge: 0, mode: 'intro', tab: 'throttle',
     endTimer: null, lastTelemetryI: -1, dragging: false, seen: store.get('seen', {}), stars: store.get('stars', {}),
+    rcsSel: new Set(), liveTrim: null, thrDragging: false, queued: null,
   };
 
   /* ---------------- scenario loading ---------------- */
@@ -89,7 +90,28 @@
       updateLog(f.t);
       drawTimeline();
       renderEngineButtons();
+      syncControls(f);
     }
+  }
+  function syncControls(f) {
+    if (!app.thrDragging) { $('#thrSlider').value = Math.round(f.throttle * 100); $('#thrVal').textContent = Math.round(f.throttle * 100) + '%'; }
+    const running = f.engines.filter(e => e.level > 0.5).length;
+    $('#thrReadout').innerHTML = `<span class="dim">Now:</span> <b>${running}/6 engines</b> · ${(f.thrust / 1e6).toFixed(1)} MN · <b>${f.gLoad.toFixed(1)} g</b> <span class="dim">(plan ${Math.round(f.throttleRef * 100)}%, structural limit ${app.ship.gLimit} g)</span>`;
+    const trim = app.liveTrim != null ? app.liveTrim : f.trim;
+    SB.drawGimbalPad($('#gimbalPad'), app.ship, f, trim);
+    const ahead = frameAt(app.i + Math.round(5 / app.run.dt));
+    const satNote = f.sasSat ? ' <span class="bad">SAS saturated: it cannot hold the plan until you trim.</span>' : '';
+    $('#trimReadout').innerHTML = `<span class="dim">Trim</span> <b>${fmt.sn(f.trim, 1)}°</b> <span class="dim">+ SAS</span> ${fmt.sn(f.sas, 1)}° <span class="dim">+ plan</span> ${fmt.sn(f.gimbalRef, 1)}° <span class="dim">= gimbal</span> <b>${fmt.sn(f.gimbalAct, 1)}°</b>${satNote}<br>` +
+      `<span class="dim">In 5 s:</span> attitude error <b class="${Math.abs(ahead.pitchErr) > 10 ? 'bad' : Math.abs(ahead.pitchErr) > 3 ? 'warn' : 'good'}">${fmt.sn(ahead.pitchErr, 1)}°</b>, rate <b class="${Math.abs(ahead.rateErr) > 8 ? 'bad' : Math.abs(ahead.rateErr) > 2 ? 'warn' : 'good'}">${fmt.sn(ahead.rateErr, 1)}°/s</b>, recovery ${Math.round(ahead.recovery * 100)}%`;
+    SB.drawRcsPad($('#rcsPad'), app.ship, f, app.rcsSel, +$('#rcsPower').value / 100);
+    const bl = SB.rcsEffect(app.ship, SB.massProps(app.ship, f.prop), Array.from(app.rcsSel), +$('#rcsPower').value / 100);
+    const dur = +$('#rcsDur').value;
+    $('#rcsReadout').innerHTML = app.rcsSel.size
+      ? `<b class="blue">${Array.from(app.rcsSel).map(id => app.ship.rcs.thrusters[id].name).join(' + ')}</b> for ${dur.toFixed(1)} s: ` +
+        `rate change about <b>${fmt.sn(bl.tau / f.I * SB.RAD * dur, 1)}°/s</b>, costs ${(bl.mdot * dur).toFixed(0)} kg of propellant.`
+      : '<span class="dim">Select one or more thrusters on the ship.</span>';
+    $('#engReadout').innerHTML = `<span class="dim">Sum of engine moments:</span> <b class="${Math.abs(f.tq.asym) > 1e6 ? 'bad' : 'good'}">${(f.tq.asym / 1e6).toFixed(1)} MN·m</b> <span class="dim">· gimbal is countering ${(f.tq.gimbal / 1e6).toFixed(1)}</span>`;
+    $('#addRcs').disabled = app.rcsSel.size === 0;
   }
 
   const TILES = [['alt', 'ALT'], ['vel', 'VEL'], ['vspd', 'V.SPEED'], ['hspd', 'H.SPEED'],
@@ -192,6 +214,11 @@
 
   /* ---------------- actions editor ---------------- */
   function round1(t) { return Math.round(t * 10) / 10; }
+  function queueAction(a) {
+    app.queued = a;
+    if (app.queuedRaf) return;
+    app.queuedRaf = requestAnimationFrame(() => { app.queuedRaf = null; const q = app.queued; app.queued = null; if (q) addAction(q); });
+  }
   function addAction(a) {
     a.t = round1(app.t);
     a.id = fmt.uid();
@@ -206,7 +233,7 @@
       case 'throttle': return 'THR ' + (a.value == null ? 'PLAN' : Math.round(a.value * 100) + '%');
       case 'trim': return 'TRIM ' + fmt.sn(a.value, 1) + '°';
       case 'engine': return a.engine + ' ' + (a.cmd === 'on' ? 'RELIGHT' : 'OFF');
-      case 'rcs': return 'RCS ' + (a.dir > 0 ? '↺' : '↻') + ' ' + a.duration.toFixed(1) + 's';
+      case 'rcs': return 'RCS ' + (a.thrusters ? a.thrusters.join('+') : (a.dir > 0 ? 'NR' : 'NL')) + ' ' + Math.round((a.power || 1) * 100) + '% ' + a.duration.toFixed(1) + 's';
     }
     return a.type;
   }
@@ -230,7 +257,8 @@
       if (es.state === 'failed') { cls = 'failed'; label = 'FAILED'; cmd = null; }
       else if (es.state === 'on' || es.state === 'spool') { cls = 'on'; label = (es.state === 'spool' ? 'SPOOLING' : 'ON') + ' · tap to cut'; cmd = 'off'; }
       else if (es.state === 'shutdown') { cls = 'off'; label = 'SPOOLING DOWN'; cmd = 'on'; }
-      const b = el('button', cls, `<b>${e.id}</b>${label}`);
+      const tq = f.engTq ? f.engTq[k] / 1e6 : 0;
+      const b = el('button', cls, `<b>${e.id}</b>${label}<br><span class="${Math.abs(tq) > 0.05 ? (Math.abs(tq) > 1 ? 'bad' : 'warn') : 'dim'}">${tq >= 0 ? '+' : '−'}${Math.abs(tq).toFixed(1)} MN·m</span>`);
       b.disabled = !cmd;
       b.title = e.kind === 'vac' ? 'Raptor Vacuum (fixed)' : 'Raptor centre (gimbals)';
       if (cmd) b.addEventListener('click', () => addAction({ type: 'engine', engine: e.id, cmd }));
@@ -312,11 +340,11 @@
       <p>The dashed line is the trajectory the flight plan would fly. The ghost ship is where the plan says you should be right now. Orange is what you actually flew.</p>
       <ul>
         <li><b>Timeline</b>: drag to scrub. Every action you add applies from that moment on, and the whole flight is re-simulated instantly, so you can rewind and try again as often as you like.</li>
-        <li><b>Throttle</b> sets all running engines (40–100%). <b>Engines</b> shut down or relight individual Raptors; relights can fail for good. <b>Gimbal</b> trims the three centre engines; the SAS adds up to ±3° to hold the plan. <b>RCS</b> vents propellant sideways for a pulse of torque.</li>
+        <li><b>Throttle</b> sets all running engines (40–100%). <b>Engines</b> shut down or relight individual Raptors; relights can fail for good. <b>Gimbal</b> is a drag pad: point the centre-engine flame, read the moment it makes against the engine imbalance, and match it. The SAS adds up to ±3° on top to hold the plan. <b>RCS</b>: pick thrusters on the ship and fire a timed burst.</li>
         <li><b>Recovery</b> falls as body rate and attitude error grow. Below 15% for one second the flight termination system fires and the ship is lost.</li>
         <li>The result is judged on the terminal state (orbit, handoff or touchdown), deviation from the line, Δv margin and structural load.</li>
       </ul>
-      <p class="muted">Positive trim and RCS ↺ turn the nose counter-clockwise on screen. Everything is deterministic: the same actions always give the same flight.</p>
+      <p class="muted">Every control acts from the playhead onward and the rest of the flight is re-flown instantly; the dotted line shows where you are now headed. Everything is deterministic: the same actions always give the same flight.</p>
       <div class="btns"><button class="primary" id="cardBack">Got it</button></div>`);
     $('#cardClose').addEventListener('click', hideCard);
     $('#cardBack').addEventListener('click', hideCard);
@@ -334,35 +362,57 @@
     $$('.tabs button').forEach(b => b.addEventListener('click', () => {
       app.tab = b.dataset.tab; $$('.tabs button').forEach(x => x.classList.toggle('on', x === b));
       $$('.pane').forEach(p => p.classList.toggle('on', p.id === 'pane-' + app.tab));
+      app.lastTelemetryI = -1;   // instruments in the newly shown pane need a draw
     }));
     const tl = $('#timeline');
     tl.addEventListener('pointerdown', e => { app.dragging = true; tl.setPointerCapture(e.pointerId); timelinePointer(e); });
     tl.addEventListener('pointermove', e => { if (app.dragging) timelinePointer(e); });
     tl.addEventListener('pointerup', () => { app.dragging = false; });
     tl.addEventListener('pointercancel', () => { app.dragging = false; });
-    // throttle
+    // throttle: live, from the playhead onward
     const thr = $('#thrSlider');
-    thr.addEventListener('input', () => $('#thrVal').textContent = thr.value + '%');
+    thr.addEventListener('input', () => { $('#thrVal').textContent = thr.value + '%'; queueAction({ type: 'throttle', value: +thr.value / 100 }); });
+    thr.addEventListener('pointerdown', () => { app.thrDragging = true; });
+    window.addEventListener('pointerup', () => { app.thrDragging = false; });
     $$('#pane-throttle .quick button').forEach(b => b.addEventListener('click', () => {
       if (b.dataset.thr === 'plan') addAction({ type: 'throttle', value: null });
       else { thr.value = Math.round(+b.dataset.thr * 100); $('#thrVal').textContent = thr.value + '%'; addAction({ type: 'throttle', value: +b.dataset.thr }); }
     }));
-    $('#addThr').addEventListener('click', () => addAction({ type: 'throttle', value: +thr.value / 100 }));
-    // trim
-    const trim = $('#trimSlider');
-    trim.addEventListener('input', () => $('#trimVal').textContent = fmt.sn(+trim.value, 1) + '°');
-    $$('#pane-trim .quick button').forEach(b => b.addEventListener('click', () => {
-      const cur = frameAt(app.i).trim;
-      const v = b.dataset.trim === '0' ? 0 : SB.clamp(Math.round((cur + parseFloat(b.dataset.trim)) * 10) / 10, -10, 10);
-      trim.value = v; $('#trimVal').textContent = fmt.sn(v, 1) + '°';
+    // gimbal pad: drag left/right to trim
+    const gp = $('#gimbalPad');
+    let gpDrag = null;
+    gp.addEventListener('pointerdown', e => { gp.setPointerCapture(e.pointerId); gpDrag = { x0: e.clientX, t0: frameAt(app.i).trim }; app.liveTrim = gpDrag.t0; e.preventDefault(); });
+    gp.addEventListener('pointermove', e => {
+      if (!gpDrag) return;
+      const g = gp._geom || { width: gp.clientWidth * 0.56 };
+      const v = Math.round(SB.clamp(gpDrag.t0 - (e.clientX - gpDrag.x0) / g.width * 20, -10, 10) * 10) / 10;
+      if (v !== app.liveTrim) { app.liveTrim = v; queueAction({ type: 'trim', value: v }); }
+    });
+    const gpEnd = () => { if (!gpDrag) return; const v = app.liveTrim; gpDrag = null; app.liveTrim = null; if (v !== frameAt(app.i).trim) addAction({ type: 'trim', value: v }); app.lastTelemetryI = -1; };
+    gp.addEventListener('pointerup', gpEnd); gp.addEventListener('pointercancel', gpEnd);
+    $$('#pane-trim .quick button[data-trim]').forEach(b => b.addEventListener('click', () => {
+      const v = SB.clamp(Math.round((frameAt(app.i).trim + parseFloat(b.dataset.trim)) * 10) / 10, -10, 10);
       addAction({ type: 'trim', value: v });
     }));
-    $('#addTrim').addEventListener('click', () => addAction({ type: 'trim', value: +trim.value }));
-    // rcs
-    const dur = $('#rcsDur');
-    dur.addEventListener('input', () => $('#rcsDurVal').textContent = (+dur.value).toFixed(1) + ' s');
-    $('#addRcsCcw').addEventListener('click', () => addAction({ type: 'rcs', dir: 1, duration: +dur.value }));
-    $('#addRcsCw').addEventListener('click', () => addAction({ type: 'rcs', dir: -1, duration: +dur.value }));
+    $('#trimCenter').addEventListener('click', () => addAction({ type: 'trim', value: 0 }));
+    $('#trimMatch').addEventListener('click', () => {
+      const f = frameAt(app.i);
+      if (f.trimBalance == null) return;
+      addAction({ type: 'trim', value: SB.clamp(Math.round(f.trimBalance * 10) / 10, -10, 10) });
+    });
+    // rcs pad: tap thrusters
+    const rp = $('#rcsPad');
+    rp.addEventListener('pointerdown', e => {
+      const r = rp.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      const hit = (rp._hits || []).find(h => Math.hypot(h.x - x, h.y - y) <= h.r);
+      if (!hit) return;
+      if (app.rcsSel.has(hit.id)) app.rcsSel.delete(hit.id); else app.rcsSel.add(hit.id);
+      app.lastTelemetryI = -1;
+    });
+    const rcsPower = $('#rcsPower'), dur = $('#rcsDur');
+    rcsPower.addEventListener('input', () => { $('#rcsPowerVal').textContent = rcsPower.value + '%'; app.lastTelemetryI = -1; });
+    dur.addEventListener('input', () => { $('#rcsDurVal').textContent = (+dur.value).toFixed(1) + ' s'; app.lastTelemetryI = -1; });
+    $('#addRcs').addEventListener('click', () => { if (app.rcsSel.size) addAction({ type: 'rcs', thrusters: Array.from(app.rcsSel), power: +rcsPower.value / 100, duration: +dur.value }); });
     $('#btnClear').addEventListener('click', () => { app.actions = []; recompute(); app.lastTelemetryI = -1; });
     $('#btnMissions').addEventListener('click', showMissions);
     $('#btnHelp').addEventListener('click', showHelp);

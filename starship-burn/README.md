@@ -29,17 +29,28 @@ system and the ship is lost.
 
 ## Controls
 
-* **Timeline** — drag to scrub. Actions apply from the moment you place them; the
-  whole flight is re-simulated instantly (a full run takes ~30 ms), so rewinding
-  and retrying is free.
+Every control acts from the playhead onward. The rest of the flight is
+re-simulated instantly (a full run takes ~30 ms) and drawn as a dotted line in
+the flight view, so you see the consequence of a change before you press play.
+
+* **Timeline** — drag to scrub; tap a chip to jump to that action.
 * **Throttle** — all running engines, 40–100 %, or back to the plan's schedule.
-* **Engines** — shut down or relight any Raptor. Relights roll dice (centre 85 %,
-  RVac 70 %); a failed relight is permanent and the roll is fixed per attempt, so
-  the same timeline always replays the same way.
-* **Gimbal** — trims the three centre engines. A stability-augmentation system
-  adds up to ±3° on top to hold the recorded attitude; when it shows **SAT** it is
-  out of authority and the ship starts to diverge.
-* **RCS** — vents propellant sideways from the nose for a timed pulse of torque.
+  The readout shows engines, thrust and g-load at the playhead.
+* **Engines** — shut down or relight any Raptor. Each button shows the engine's
+  moment about the centre of mass, so a lone outboard engine is obviously the
+  one rolling the ship. Relights roll dice (centre 85 %, RVac 70 %); a failed
+  relight is permanent and the roll is fixed per attempt.
+* **Gimbal** — a drag pad. Drag left or right to swivel the three centre engines
+  (±10° of trim); the flame shows where they point and the nose swings the same
+  way. Arcs around the CoM show the moment from the engine imbalance (red), from
+  the gimbal (green) and what is left (white), with a marker at the trim that
+  matches the imbalance. RECENTER zeroes the trim; MATCH THE IMBALANCE sets it.
+  The stability system adds up to ±3° on top of your trim to hold the recorded
+  attitude; **SAT** means it is out of authority.
+* **RCS** — tap thrusters on the ship (nose and aft, port and starboard), pick
+  power and burst length, and fire. The pad shows the burst's moment next to
+  the engine imbalance, the rate change it will produce and the propellant it
+  costs. A nose and an aft thruster on opposite sides make a pure couple.
 
 Space plays/pauses; ←/→ scrub by 0.5 s (shift: 5 s) on a keyboard.
 
@@ -58,6 +69,7 @@ js/render.js        scene canvas + engine-ring / attitude inset
 js/main.js          app state, playback, timeline editor, cards
 tools/simcheck.js   node harness: reference clean, failure fails, solution wins
 tools/screenshot.js Playwright smoke test that walks the UI and saves screenshots
+tools/bundle.js     builds dist/index.html, a single self-contained file
 tools/trace.js      prints a run's telemetry table (debugging / tuning)
 ```
 
