@@ -14,7 +14,7 @@
   /* ------------------------------------------------------------------ */
   const hotstage = {
     id: 'hotstage', order: 1, tag: 'TUTORIAL', title: 'Hot Stage',
-    brief: 'T+0: Ship lights all six Raptors while still bolted to the booster. At T+1.5 the clamps release and Ship has to push cleanly away, hold the pitch program and hand off to the ascent guidance at T+25.',
+    brief: 'T+0: Ship lights all six Raptors while still bolted to the booster. At T+1.5 the clamps release and Ship has to push cleanly away, hold the pitch program and hand off to the ascent guidance at T+25. Behind it, Super Heavy flips and burns back toward the pad.',
     failureNote: 'RVac 3 (outboard, starboard) never ignites. The remaining outboard engine now pushes off-centre and the stability system runs out of gimbal authority trying to hold the nose.',
     hints: [
       'Watch the GIMBAL tile: SAT means the SAS has used all ±3° it is allowed. Give it more with a gimbal TRIM right after separation.',
@@ -24,14 +24,20 @@
     ],
     ship: { dryMass: 130e3, prop: 1170e3 },
     initial: { alt: 66e3, speed: 1750, gamma: 22, pitch: 68, enginesOn: [] },
+    /* Super Heavy after staging: three centre engines stay lit through separation,
+       the booster flips over the top (nose from downrange-and-up to back toward the
+       launch site) and relights for the boostback burn, so it leaves the scene fast. */
     booster: {
-      mass: 250e3, length: 71, com: 28, cda: 80,
-      thrust: tRel => tRel < 0 ? 1.5e6 : (tRel < 1.0 ? 1.5e6 * (1 - tRel) : 0),
+      mass: 500e3, length: 71, com: 28, cda: 80,
+      flipStart: 1.5, flipDuration: 8, flipDeg: 153, boostbackStart: 9.5,
+      thrust(tRel) { return tRel < this.boostbackStart ? (tRel < 0 ? 1.5e6 : 2.0e6) : 18e6; },
+      attitude(tRel) { return (tRel < this.flipStart ? 0 : SB.smoothstep((tRel - this.flipStart) / this.flipDuration).v) * this.flipDeg * DEG; },
     },
     duration: 25, dt: 0.01, aero: true, view: 'stage',
     plan: {
       throttle0: 1,
-      events: [{ t: 0, type: 'ignite', engines: ALL }, { t: 1.5, type: 'release' }],
+      events: [{ t: 0, type: 'ignite', engines: ALL }, { t: 1.5, type: 'release' },
+        { t: 3.0, type: 'note', msg: 'Booster begins its flip' }, { t: 11.0, type: 'note', msg: 'Booster boostback burn, 13 engines' }],
       pitch: (function () { const pp = SB.pitchProgram([[0, 68], [4, 68], [25, 75]]); return t => pp(t); })(),
       throttle: () => 1.0,
     },

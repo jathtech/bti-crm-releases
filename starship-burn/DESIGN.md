@@ -23,7 +23,11 @@ re-trims, rebalances the engines or accepts a different trajectory.
 
 ## Starship as modelled (js/vehicle.js)
 
-* Ship only (the booster appears as a passive body in the hot-stage mission).
+* Ship only. In the hot-stage mission Super Heavy is a scripted body: three
+  centre engines stay lit through separation, it flips over the top once Ship
+  has cleared the interstage and relights for the boostback burn, so it leaves
+  the scene the way the real one does. Recontact is checked against its
+  interstage while the two are within a few metres.
   52 m long, 9 m diameter, three gimballing sea-level Raptors clustered in the
   middle and three fixed Raptor Vacuums outboard, in the real hexagonal layout.
   RVacs never run at sea level; landing uses the centre engines only.

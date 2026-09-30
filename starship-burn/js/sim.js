@@ -102,6 +102,7 @@
       if (ev.type === 'ignite') ev.engines.forEach(id => ignite(id, 'plan'));
       else if (ev.type === 'cutoff') ev.engines.forEach(id => shutdown(id, 'plan'));
       else if (ev.type === 'release') { ctx.released = true; ctx.tRelease = ctx.t; say('Stage separation — clamps released', 'info'); }
+      else if (ev.type === 'note') say(ev.msg, ev.kind || 'info');
     }
     function applyAction(a) {
       switch (a.type) {
@@ -194,9 +195,9 @@
         const bx = st.x - mp.com * g.ux, by = st.y - mp.com * g.uy;
         const tx = bst.x + (scn.booster.length - scn.booster.com) * ubx, ty = bst.y + (scn.booster.length - scn.booster.com) * uby;
         const dx = bx - tx, dy = by - ty;
-        sep = dx * ubx + dy * uby;
-        const lat = Math.abs(ubx * dy - uby * dx);
-        if (ctx.released && (sep < -0.3 || (sep < 2.5 && lat > 1.0))) recontact = true;
+        sep = Math.hypot(dx, dy);                       // straight-line clearance, valid once the booster flips
+        const along = dx * ubx + dy * uby, lat = Math.abs(ubx * dy - uby * dx);
+        if (ctx.released && sep < 6 && (along < -0.3 || (along < 2.5 && lat > 1.0))) recontact = true;
       }
 
       let dev = 0, devSign = 1;

@@ -151,12 +151,15 @@
       tq: { asym: 0, gimbal: 0, rcs: 0, aero: 0, net: 0 }, engTq: new Array(ship.engines.length).fill(0) };
   };
 
-  /* Free booster after release: axial thrust tail-off, gravity, simple drag, no rotation. */
+  /* Free booster after release: scripted attitude (the flip), axial thrust per the
+     booster's own schedule (residual engines, then boostback), gravity, simple drag. */
   SB.stepBooster = function (bst, booster, dt, tRel) {
     const E = SB.EARTH;
     const r = Math.hypot(bst.x, bst.y);
     const upx = bst.x / r, upy = bst.y / r;
     const atm = SB.atmo(r - E.R);
+    if (bst.theta0 == null) bst.theta0 = bst.theta;
+    if (booster.attitude) bst.theta = SB.wrapPi(bst.theta0 + booster.attitude(tRel));
     const ux = Math.cos(bst.theta), uy = Math.sin(bst.theta);
     const F = booster.thrust(tRel);
     let Fx = F * ux, Fy = F * uy;

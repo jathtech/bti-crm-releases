@@ -122,8 +122,10 @@
       ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 0.35; ctx.stroke(); }
     };
     if (b.thrust > 0) {
-      const len = 8 + 30 * b.thrust / 1.5e6;
-      [-2.2, 0, 2.2].forEach(n => {
+      const boostback = b.thrust > 5e6;
+      const lanes = boostback ? [-3.4, -2.3, -1.1, 0, 1.1, 2.3, 3.4] : [-2.2, 0, 2.2];
+      const len = (8 + 34 * Math.min(1, b.thrust / lanes.length / 2.3e6)) * (1 + 0.08 * Math.sin(Date.now() / 37));
+      lanes.forEach(n => {
         ctx.save(); const q = P(n, 0); ctx.translate(q[0], q[1]);
         const grd = ctx.createLinearGradient(0, 0, 0, len);
         grd.addColorStop(0, COL.plumeCore); grd.addColorStop(0.4, COL.plume); grd.addColorStop(1, 'rgba(255,120,40,0)');
@@ -330,7 +332,7 @@
     }
     // dials (bottom-left) and recent log lines (top-right)
     const dd = clamp(Math.round(H * 0.2), 44, 64);
-    SB.drawDials(ctx, 10, H - dd - 26, dd, ship, f);
+    SB.drawDials(ctx, W - (2 * dd + 12) - 14, H - dd - 26, dd, ship, f);
     if (s.log && s.log.length) {
       ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'right';
       s.log.forEach((l, k) => {
@@ -339,8 +341,8 @@
       });
     }
     // scale note
-    ctx.fillStyle = COL.dim; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'right';
-    ctx.fillText(view === 'ascent' ? 'vertical scale ×19 · blue = plan · orange = flown · dotted = ahead' : 'blue = plan · orange = flown · dotted = ahead', W - 8, H - 8);
+    ctx.fillStyle = COL.dim; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(view === 'ascent' ? 'vertical ×19 · blue plan · orange flown · dotted ahead' : 'blue plan · orange flown · dotted ahead', 8, H - 8);
   };
 
   function setupCanvas(canvas) {
