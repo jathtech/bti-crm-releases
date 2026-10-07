@@ -146,7 +146,8 @@ details.all .dims{padding-top:10px}
 .res-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .res-actions .wide{grid-column:1/-1}
 .share{align-items:center;text-align:center}
-.share img{width:200px;height:200px;border-radius:8px;background:#fff;padding:8px;border:1px solid var(--line)}
+.share .qr{width:216px;height:216px;padding:8px;background:#fff;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center;overflow:hidden}
+.share .qr img,.share .qr canvas{width:200px;height:200px;display:block}
 .url{font-size:13px;color:var(--muted);overflow-wrap:anywhere;user-select:all;-webkit-user-select:all}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);font:500 14px var(--body);padding:10px 14px;border-radius:8px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
@@ -223,7 +224,7 @@ details.all .dims{padding-top:10px}
       </div>
       <div class="panel share" id="sharePanel" hidden>
         <h2>Share this assessment</h2>
-        <img id="qrImg" alt="QR code that opens this assessment" width="200" height="200">
+        <div class="qr" id="qrBox" role="img" aria-label="QR code that opens this assessment"></div>
         <p class="url" id="shareUrl"></p>
         <button class="btn" id="copyUrlBtn">Copy link</button>
       </div>
@@ -340,9 +341,12 @@ window.StyleCore = (function(){
 <script>
 (function(){
   const C = window.StyleCore;
-  const SHARE_URL = 'https://jathtech.github.io/bti-crm-releases/style-snapshot/';          // public link to this page (filled in after publishing)
-  const QR_DATA_URI = 'data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2041%2041%22%20shape-rendering%3D%22crispEdges%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M0%200h41v41H0z%22%2F%3E%3Cpath%20stroke%3D%22%23152019%22%20d%3D%22M4%204.5h7m2%200h3m4%200h1m2%200h3m1%200h1m2%200h7M4%205.5h1m5%200h1m2%200h3m3%200h1m2%200h1m5%200h1m1%200h1m5%200h1M4%206.5h1m1%200h3m1%200h1m1%200h1m2%200h2m1%200h3m4%200h2m3%200h1m1%200h3m1%200h1M4%207.5h1m1%200h3m1%200h1m1%200h1m3%200h1m2%200h1m1%200h1m1%200h1m2%200h1m3%200h1m1%200h3m1%200h1M4%208.5h1m1%200h3m1%200h1m1%200h1m1%200h2m1%200h4m2%200h5m2%200h1m1%200h3m1%200h1M4%209.5h1m5%200h1m1%200h4m9%200h2m3%200h1m5%200h1M4%2010.5h7m1%200h1m1%200h1m1%200h1m1%200h1m1%200h1m1%200h1m1%200h1m1%200h1m1%200h1m1%200h7M12%2011.5h1m2%200h1m2%200h1m1%200h1m2%200h5M4%2012.5h1m1%200h5m2%200h1m3%200h1m2%200h2m1%200h1m2%200h2m2%200h5M4%2013.5h1m1%200h2m1%200h1m1%200h2m1%200h1m1%200h2m2%200h1m1%200h4m1%200h1m2%200h2m1%200h2m1%200h1M4%2014.5h1m4%200h3m3%200h5m2%200h1m2%200h2m1%200h2m2%200h1m1%200h2M4%2015.5h1m1%200h2m1%200h1m1%200h1m3%200h1m1%200h1m4%200h1m1%200h2m2%200h2m2%200h3m1%200h1M5%2016.5h1m2%200h3m4%200h1m2%200h2m1%200h1m4%200h4m1%200h3M5%2017.5h4m2%200h5m1%200h1m1%200h1m3%200h6m1%200h1m2%200h1m1%200h2M4%2018.5h1m2%200h5m1%200h1m3%200h6m1%200h1m4%200h3m1%200h3M6%2019.5h4m1%200h1m2%200h3m1%200h1m1%200h1m1%200h2m1%200h6m1%200h1m1%200h1M5%2020.5h3m2%200h1m1%200h2m3%200h1m3%200h2m1%200h1m1%200h1m1%200h2m1%200h2m3%200h1M4%2021.5h3m2%200h1m1%200h7m2%200h1m1%200h3m2%200h1m2%200h2m1%200h4M5%2022.5h1m1%200h2m1%200h2m2%200h2m1%200h1m1%200h4m1%200h2m2%200h1m2%200h2m1%200h2M4%2023.5h1m1%200h4m2%200h1m2%200h4m1%200h1m4%200h2m2%200h1m1%200h6M4%2024.5h1m2%200h1m1%200h2m1%200h1m5%200h1m2%200h1m1%200h2m1%200h1m2%200h1m1%200h3M4%2025.5h1m4%200h1m7%200h1m3%200h4m2%200h1m1%200h2m2%200h1m2%200h1M4%2026.5h1m2%200h1m2%200h2m1%200h1m1%200h1m1%200h1m1%200h1m1%200h1m2%200h2m4%200h1m2%200h3M4%2027.5h1m2%200h2m2%200h3m1%200h2m1%200h3m1%200h1m1%200h2m4%200h1m2%200h4M4%2028.5h1m4%200h2m1%200h3m1%200h1m1%200h2m1%200h1m1%200h1m4%200h6m2%200h1M12%2029.5h1m2%200h4m2%200h4m2%200h2m3%200h1m1%200h1m1%200h1M4%2030.5h7m2%200h1m1%200h2m1%200h3m1%200h1m1%200h5m1%200h1m1%200h1m1%200h2M4%2031.5h1m5%200h1m1%200h3m2%200h1m2%200h1m1%200h4m1%200h2m3%200h4M4%2032.5h1m1%200h3m1%200h1m1%200h1m3%200h2m2%200h2m4%200h1m1%200h6m1%200h2M4%2033.5h1m1%200h3m1%200h1m1%200h2m1%200h1m1%200h1m2%200h4m3%200h3m2%200h1m1%200h3M4%2034.5h1m1%200h3m1%200h1m1%200h3m1%200h5m1%200h1m1%200h1m1%200h1m1%200h1m1%200h2M4%2035.5h1m5%200h1m4%200h1m2%200h1m1%200h1m3%200h2m6%200h3M4%2036.5h7m1%200h1m2%200h1m5%200h1m4%200h6m3%200h1%22%2F%3E%3C%2Fsvg%3E';        // SVG data URI of the QR code for SHARE_URL
+  const SHARE_URL = '';          // public link to this page (filled in after publishing)
+  const QR_DATA_URI = '';        // SVG data URI of the QR code for SHARE_URL
   const STORE_KEY = 'style-snapshot-v1';
+  // With SHARE_URL empty (plain static hosting), share whatever address this page is served from.
+  function derivedShareUrl(){ try{ return /^https?:$/.test(location.protocol) ? location.origin + location.pathname : ''; }catch(e){ return ''; } }
+  function shareUrl(){ return SHARE_URL || derivedShareUrl(); }
 
   const $ = id => document.getElementById(id);
   const el = {
@@ -353,7 +357,7 @@ window.StyleCore = (function(){
     resTitle:$('resTitle'), resLede:$('resLede'), resSummary:$('resSummary'), resEyebrow:$('resEyebrow'),
     chart:$('chart'), interp:$('interp'),
     copyBtn:$('copyBtn'), shareBtn:$('shareBtn'), restartBtn:$('restartBtn'),
-    sharePanel:$('sharePanel'), qrImg:$('qrImg'), shareUrl:$('shareUrl'), copyUrlBtn:$('copyUrlBtn'),
+    sharePanel:$('sharePanel'), qrBox:$('qrBox'), shareUrl:$('shareUrl'), copyUrlBtn:$('copyUrlBtn'),
     toast:$('toast')
   };
 
@@ -568,11 +572,12 @@ window.StyleCore = (function(){
       </details>`;
 
     // share panel
-    const canShare = !!SHARE_URL;
-    el.shareBtn.hidden = !canShare;
-    el.copyBtn.classList.toggle('wide', !canShare);
-    if (canShare){ el.shareUrl.textContent = SHARE_URL; if (QR_DATA_URI) el.qrImg.src = QR_DATA_URI; else el.qrImg.hidden = true; }
+    const su = shareUrl();
+    el.shareBtn.hidden = !su;
+    el.copyBtn.classList.toggle('wide', !su);
+    el.shareUrl.textContent = su;
     el.sharePanel.hidden = true;
+    qrDrawn = false;
   }
 
   /* ---------- copy + share ---------- */
@@ -589,12 +594,28 @@ window.StyleCore = (function(){
       'Behavioral Style Snapshot',
       `Primary: ${n(r.primary)} (${t[r.primary]}) · Secondary: ${n(r.secondary)} (${t[r.secondary]})`,
       r.order.map(k => `${k} ${t[k]}`).join(' · '),
-      SHARE_URL
+      shareUrl()
     ].filter(Boolean);
     copyText(lines.join('\n'), 'Results copied');
   });
-  el.shareBtn.addEventListener('click', () => { el.sharePanel.hidden = !el.sharePanel.hidden; if(!el.sharePanel.hidden) el.sharePanel.scrollIntoView({behavior:'smooth', block:'nearest'}); });
-  el.copyUrlBtn.addEventListener('click', () => copyText(SHARE_URL, 'Link copied'));
+  el.shareBtn.addEventListener('click', () => {
+    el.sharePanel.hidden = !el.sharePanel.hidden;
+    if (!el.sharePanel.hidden){ if (!qrDrawn) renderQr(shareUrl()); el.sharePanel.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+  });
+  el.copyUrlBtn.addEventListener('click', () => copyText(shareUrl(), 'Link copied'));
+  // QR: a pre-rendered image when one was baked in, otherwise drawn in the browser for the current address.
+  let qrDrawn = false;
+  function renderQr(url){
+    const box = el.qrBox; box.innerHTML = ''; box.hidden = false; qrDrawn = true;
+    if (QR_DATA_URI){ const img = document.createElement('img'); img.src = QR_DATA_URI; img.alt = ''; img.width = 200; img.height = 200; box.appendChild(img); return; }
+    if (!url){ box.hidden = true; return; }
+    const draw = () => { try{ new QRCode(box, { text:url, width:200, height:200, colorDark:'#152019', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M }); }catch(e){ box.hidden = true; } };
+    if (window.QRCode) return draw();
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    s.onload = draw; s.onerror = () => { box.hidden = true; };
+    document.head.appendChild(s);
+  }
   let toastTimer;
   function toast(msg){ el.toast.textContent = msg; el.toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.toast.classList.remove('show'), 1800); }
 
