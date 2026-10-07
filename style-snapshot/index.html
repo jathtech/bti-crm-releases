@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A three-minute forced-ranking behavioral-style self-assessment across four dimensions.">
+<meta name="color-scheme" content="light dark">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Behavioral Style Snapshot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: one phone-width column. Quiz = sticky progress header, four ranked drop
+   positions, a tray of four word cards, sticky Back/Next bar. Results = sorted bars. */
+:root{
+  --bg:#edf1ee; --card:#ffffff; --fg:#152019; --muted:#5b6a63;
+  --line:#cfd8d2; --line-strong:#a9b8b0;
+  --accent:#0f6f64; --accent-ink:#ffffff;
+  --track:color-mix(in oklab, var(--accent) 14%, var(--card));
+  --shadow:0 1px 2px rgba(21,32,25,.08), 0 6px 18px rgba(21,32,25,.06);
+  --display:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1412; --card:#1a211e; --fg:#e8eeeb; --muted:#9db0a8;
+    --line:#2c3732; --line-strong:#45544d;
+    --accent:#4cc6b3; --accent-ink:#0b1a17;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1412; --card:#1a211e; --fg:#e8eeeb; --muted:#9db0a8;
+  --line:#2c3732; --line-strong:#45544d;
+  --accent:#4cc6b3; --accent-ink:#0b1a17;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5;-webkit-text-size-adjust:100%}
+*,*::before,*::after{box-sizing:border-box}
+.app{max-width:480px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+.screen{padding-inline:16px;padding-block:20px 28px;flex:1;display:flex;flex-direction:column;gap:18px;min-width:0}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(28px,7.5vw,36px);font-weight:700;letter-spacing:-.01em}
+h2{font-size:18px;font-weight:600}
+p{margin:0}
+.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.lede{font-size:17px}
+.muted{color:var(--muted)}
+.fine{font-size:14px;color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:10px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+
+/* buttons */
+.btn{font:600 16px/1.2 var(--body);padding:13px 18px;border-radius:8px;border:1px solid var(--line-strong);background:var(--card);color:var(--fg);cursor:pointer;min-height:48px;transition:transform .08s ease,background .15s ease}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.big{font-size:18px;min-height:56px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:not(:disabled):active{transform:translateY(1px)}
+.btn.pulse:not(:disabled){animation:pulse 1.4s ease-in-out 2}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in oklab,var(--accent) 45%,transparent)}50%{box-shadow:0 0 0 8px color-mix(in oklab,var(--accent) 0%,transparent)}}
+.btn:focus-visible,.card:focus-visible,summary:focus-visible{outline:3px solid color-mix(in oklab,var(--accent) 60%,transparent);outline-offset:2px}
+
+/* rank badges: one hue, four ordinal steps (4 = deepest) */
+.rank{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;font:700 14px var(--display);background:var(--accent);color:var(--accent-ink);flex:none}
+.rank.r3{background:color-mix(in oklab,var(--accent) 75%,var(--card))}
+.rank.r2{background:color-mix(in oklab,var(--accent) 50%,var(--card));color:var(--fg)}
+.rank.r1{background:color-mix(in oklab,var(--accent) 24%,var(--card));color:var(--fg)}
+.rank-legend{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
+.rank-legend li{display:flex;align-items:center;gap:8px;font-size:15px}
+@media (max-width:360px){.rank-legend{grid-template-columns:1fr}}
+
+/* intro */
+.meta-row{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;color:var(--muted)}
+details.about{border-top:1px solid var(--line);padding-top:12px}
+details.about summary{cursor:pointer;font:600 15px var(--display);list-style:none;display:flex;align-items:center;gap:8px}
+details.about summary::-webkit-details-marker{display:none}
+details.about summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;margin-left:2px}
+details.about[open] summary::before{transform:rotate(45deg)}
+details.about .stack{padding-top:10px;font-size:14.5px;color:var(--muted)}
+
+/* quiz header + footer */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in oklab,var(--bg) 94%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:12px 16px 10px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--line)}
+.step{display:flex;justify-content:space-between;align-items:baseline;font:600 15px var(--display)}
+.step small{font:500 13px var(--body);color:var(--muted)}
+.progress{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+.progress i{display:block;height:4px;border-radius:2px;background:var(--line)}
+.progress i.done{background:var(--accent)}
+.progress i.cur{background:color-mix(in oklab,var(--accent) 45%,var(--line))}
+.actions{position:sticky;bottom:0;z-index:5;display:grid;grid-template-columns:1fr 2fr;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:color-mix(in oklab,var(--bg) 94%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-top:1px solid var(--line)}
+
+/* ranking slots */
+.hint{font-size:14.5px;color:var(--muted)}
+.slots{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.slot{display:grid;grid-template-columns:auto minmax(76px,92px) 1fr;align-items:center;gap:10px;min-height:62px;padding:7px 8px 7px 10px;border-radius:8px;background:color-mix(in oklab,var(--card) 50%,var(--bg));border:1px solid var(--line);min-width:0;transition:background .15s,border-color .15s}
+.slot.over{border-color:var(--accent);background:color-mix(in oklab,var(--accent) 12%,var(--card))}
+.slot-name{font-size:13px;line-height:1.2;color:var(--muted)}
+.slot-card{min-width:0}
+.drop-hint{height:46px;border:1.5px dashed var(--line-strong);border-radius:6px;display:grid;place-items:center;font-size:13px;color:var(--muted)}
+.slot.next .drop-hint{border-color:color-mix(in oklab,var(--accent) 55%,var(--line-strong))}
+
+/* word cards */
+.card{appearance:none;width:100%;min-height:46px;padding:10px 12px;border-radius:6px;border:1px solid var(--line-strong);background:var(--card);color:var(--fg);font:600 16px/1.2 var(--display);text-align:left;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.card span{min-width:0;overflow-wrap:anywhere}
+.card .grip{flex:none;width:10px;height:16px;background-image:radial-gradient(circle,var(--line-strong) 1.3px,transparent 1.5px);background-size:5px 5.4px;opacity:.9}
+.card.dragging{opacity:.3}
+.card:active{cursor:grabbing}
+.ghost{position:fixed;left:0;top:0;z-index:50;pointer-events:none;box-shadow:0 14px 34px rgba(0,0,0,.28);transform:scale(1.04);will-change:transform}
+.tray-wrap{display:flex;flex-direction:column;gap:8px}
+.tray-label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between}
+.tray{display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:8px;min-height:116px;padding:8px;border-radius:8px;border:1.5px dashed var(--line-strong);transition:background .15s,border-color .15s;position:relative}
+.tray .card{min-height:50px}
+.tray.over{border-color:var(--accent);background:color-mix(in oklab,var(--accent) 10%,var(--card))}
+.tray-done{grid-column:1/-1;display:grid;place-items:center;text-align:center;font-size:14px;color:var(--muted);padding:12px}
+.tray-done b{color:var(--fg);font-weight:600}
+
+/* results */
+.summary-line{font:600 18px var(--display);font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:6px 14px}
+.summary-line span{white-space:nowrap}
+.chart{gap:16px}
+.row{display:flex;flex-direction:column;gap:6px;min-width:0}
+.row-head{display:flex;align-items:center;gap:8px;min-width:0}
+.letter{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:6px;background:color-mix(in oklab,var(--accent) 12%,var(--card));color:var(--accent);font:700 13px var(--display);flex:none}
+.dim-name{font:600 15px var(--display);min-width:0;overflow-wrap:anywhere}
+.pill{font:600 10.5px/1 var(--body);text-transform:uppercase;letter-spacing:.06em;padding:4px 7px;border-radius:999px;background:var(--accent);color:var(--accent-ink);flex:none}
+.pill.sec{background:color-mix(in oklab,var(--accent) 16%,var(--card));color:var(--accent)}
+.val{margin-left:auto;font:700 24px/1 var(--display);flex:none}
+.track{height:14px;border-radius:0 4px 4px 0;background:var(--track);position:relative;overflow:hidden}
+.fill{height:100%;width:0;background:var(--accent);border-radius:0 4px 4px 0;transition:width .7s cubic-bezier(.2,.7,.2,1)}
+.axis{position:relative;height:18px;border-top:1px solid var(--line);margin-top:-4px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.axis span{position:absolute;top:3px;transform:translateX(-50%)}
+.axis span:first-child{transform:none}
+.axis span:last-child{transform:translateX(-100%)}
+.interp p{font-size:15.5px}
+.interp{gap:12px}
+.dims{display:grid;gap:10px}
+.dim{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:start;padding:12px;border-radius:8px;border:1px solid var(--line);background:color-mix(in oklab,var(--card) 50%,var(--bg))}
+.dim .letter{grid-row:1/3}
+.dim-title{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font:600 15px var(--display)}
+.dim p{font-size:14px;color:var(--muted)}
+details.all summary{cursor:pointer;font:600 14px var(--body);color:var(--accent)}
+details.all .dims{padding-top:10px}
+.res-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.res-actions .wide{grid-column:1/-1}
+.share{align-items:center;text-align:center}
+.share img{width:200px;height:200px;border-radius:8px;background:#fff;padding:8px;border:1px solid var(--line)}
+.url{font-size:13px;color:var(--muted);overflow-wrap:anywhere;user-select:all;-webkit-user-select:all}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);font:500 14px var(--body);padding:10px 14px;border-radius:8px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top" id="top" hidden>
+    <div class="step"><span id="stepLabel">Question 1 of 10</span><small id="stepHint">Rank all four</small></div>
+    <div class="progress" id="progress" aria-hidden="true"></div>
+  </header>
+
+  <main id="main">
+    <!-- Intro -->
+    <section class="screen" id="intro">
+      <div class="stack">
+        <p class="eyebrow">Four-dimension behavioral style</p>
+        <h1>Behavioral Style Snapshot</h1>
+        <p class="lede">Ten quick word rankings. In about three minutes you'll see how four common behavioral tendencies compare within you.</p>
+        <div class="meta-row"><span>10 screens</span><span>About 3 minutes</span><span>No sign-in</span></div>
+      </div>
+      <div class="panel">
+        <h2>How it works</h2>
+        <p>Each screen shows four words. Rank them from the one that sounds most like you to the one that sounds least like you. Drag a word onto a position, or tap the words in order.</p>
+        <ol class="rank-legend">
+          <li><span class="rank r4">4</span> Most like me</li>
+          <li><span class="rank r3">3</span> More like me</li>
+          <li><span class="rank r2">2</span> Less like me</li>
+          <li><span class="rank r1">1</span> Least like me</li>
+        </ol>
+        <p class="fine">There are no right answers and no time limit. Go with your first instinct.</p>
+      </div>
+      <button class="btn primary big" id="startBtn">Start</button>
+      <details class="about">
+        <summary>About this assessment</summary>
+        <div class="stack">
+          <p>This is a forced-choice (ipsative) assessment. Every set of four words takes exactly the ranks 4, 3, 2 and 1, so your four scores always total 100 and each dimension can range from 10 to 40. The scores describe how strongly the four tendencies compare with one another <em>within you</em>. They are not percentiles, not a comparison with other people, not a measure of ability or psychological health, and not a diagnosis.</p>
+          <p>It is an independent four-dimension behavioral-style assessment based on the public-domain four-factor model first described by psychologist William Moulton Marston in 1928. It is not an official or certified DiSC® assessment and is not affiliated with or endorsed by John Wiley &amp; Sons or any other publisher of trademarked assessments.</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- Quiz -->
+    <section class="screen" id="quiz" hidden>
+      <p class="hint" id="hint">Drag each word onto a position, or tap the words in order from most to least like you.</p>
+      <ol class="slots" id="slots" aria-label="Ranked positions"></ol>
+      <div class="tray-wrap">
+        <p class="tray-label"><span>Words to place</span><span id="trayCount"></span></p>
+        <div class="tray" id="tray" data-drop="tray" aria-label="Unplaced words"></div>
+      </div>
+      <p class="sr-only" id="live" aria-live="polite"></p>
+    </section>
+
+    <!-- Results -->
+    <section class="screen" id="results" hidden>
+      <div class="stack">
+        <p class="eyebrow" id="resEyebrow">Your results</p>
+        <h1 id="resTitle"></h1>
+        <p class="lede" id="resLede"></p>
+        <p class="summary-line" id="resSummary"></p>
+      </div>
+      <div class="panel chart" id="chart" role="img"></div>
+      <div class="panel interp" id="interp"></div>
+      <div class="panel">
+        <h2>How to read these scores</h2>
+        <p class="fine">This is a forced-choice (ipsative) assessment. Because each set of four words uses the ranks 4, 3, 2 and 1 exactly once, your four scores always total 100 and each one can range from 10 to 40. The numbers show how strongly these four tendencies compare with one another <em>within you</em>. They are not IQ-style scores, percentiles, a comparison with other people, a diagnosis, or an objective measure of psychological health. Treat them as a conversation starter about how you tend to work, not as a verdict.</p>
+      </div>
+      <div class="res-actions">
+        <button class="btn" id="copyBtn">Copy results</button>
+        <button class="btn" id="shareBtn">Share</button>
+        <button class="btn wide" id="restartBtn">Start over</button>
+      </div>
+      <div class="panel share" id="sharePanel" hidden>
+        <h2>Share this assessment</h2>
+        <img id="qrImg" alt="QR code that opens this assessment" width="200" height="200">
+        <p class="url" id="shareUrl"></p>
+        <button class="btn" id="copyUrlBtn">Copy link</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="actions" id="actions" hidden>
+    <button class="btn" id="backBtn">Back</button>
+    <button class="btn primary" id="nextBtn" disabled>Next</button>
+  </footer>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script id="core">
+/* ---------- Pure data + scoring (no DOM) ---------- */
+window.StyleCore = (function(){
+  // Dimension letters are never shown during the assessment; only on results.
+  const DIMS = {
+    D:{name:'Dominance', blurb:'Assertive, decisive and independent. Takes charge, moves toward results, and is comfortable with directness and competition.'},
+    I:{name:'Influence', blurb:'Expressive, enthusiastic and persuasive. Energized by people, optimistic, and comfortable influencing and bringing others along.'},
+    S:{name:'Steadiness', blurb:'Patient, supportive and dependable. Cooperative and calm, values consistency and stability, and tends to be agreeable.'},
+    C:{name:'Conscientiousness', blurb:'Analytical, precise and systematic. Careful and disciplined, and focused on accuracy, standards and quality.'}
+  };
+  const ORDER = ['D','I','S','C'];
+  const QUESTIONS = [
+    [['Enthusiastic','I'],['Bold','D'],['Conscientious','C'],['Friendly','S']],
+    [['Logical','C'],['Attractive','I'],['Good-Natured','S'],['Outspoken','D']],
+    [['Agreeable','S'],['Outgoing','I'],['Daring','D'],['Careful','C']],
+    [['Strong-Willed','D'],['Tactful','C'],['Sympathetic','S'],['Charming','I']],
+    [['Gentle','S'],['Well-Disciplined','C'],['Talkative','I'],['Pioneering','D']],
+    [['Competitive','D'],['Even-Tempered','S'],['Good Mixer','I'],['Thorough','C']],
+    [['Sociable','I'],['Dominant','D'],['Controlled','C'],['Easygoing','S']],
+    [['Reserved','C'],['Appealing','I'],['Kind','S'],['Direct','D']],
+    [['High-Spirited','I'],['Amiable','S'],['Vigorous','D'],['Accurate','C']],
+    [['Restless','D'],['Expressive','I'],['Diplomatic','C'],['Considerate','S']]
+  ];
+  // Slot position 0..3 holds rank 4..1.
+  const RANKS = [
+    {value:4, label:'Most like me'},
+    {value:3, label:'More like me'},
+    {value:2, label:'Less like me'},
+    {value:1, label:'Least like me'}
+  ];
+  const PAIRS = {
+    DI:'You combine a drive for results with real social energy. You tend to take charge quickly, set direction, and then bring people along through enthusiasm and persuasion rather than through process. You are likely at your best launching things and rallying others. Watch for moving faster than the details, or the quieter people in the room, can follow.',
+    DS:'You pair assertiveness with a steady, dependable streak. You push for results, but you prefer to get there through consistent effort and loyalty to the people and systems you have committed to, rather than through constant change. Others may see you as a determined, reliable driver. The tension to watch is between your impatience for progress and your preference for stability.',
+    DC:'You bring together the assertiveness and results focus of Dominance with the analytical, accuracy-minded approach of Conscientiousness. You tend to set high standards, decide with the facts in hand, and expect things done right as well as done fast. You are likely direct and independent, and more comfortable with tasks and systems than with small talk. Watch for coming across as blunt or demanding, especially when others need more warmth or more time.',
+    ID:'You lead with people and energy, backed by a willingness to take charge. You are typically outgoing, persuasive and confident, quick to act and comfortable in the spotlight. You rally others toward a goal and do not shy away from competition. Watch for over-committing, or for glossing over details and follow-through.',
+    IS:'You combine warmth and sociability with patience and support for others. You tend to be friendly, encouraging and easy to be around, and more interested in harmony and connection than in control or precision. People likely come to you to feel heard. Watch for avoiding hard conversations, or saying yes when you mean no.',
+    IC:'You pair an expressive, people-oriented style with a thoughtful, accuracy-minded one. You can be enthusiastic and persuasive, yet you also want your ideas to hold up to scrutiny. That can make you a convincing communicator who does the homework. The tension to watch is between spontaneity and the need to get it right, which can slow you down or lead to second-guessing.',
+    SD:'You lead with steadiness and dependability, backed by quiet determination. You prefer stability and cooperation, but when something matters you will push for it directly and persistently. Others likely see you as calm under pressure and hard to knock off course. Watch for sitting on frustration until it comes out more forcefully than you intended.',
+    SI:'You combine a patient, supportive nature with warmth and friendliness. You tend to be a loyal team player who keeps relationships smooth and helps people feel comfortable, and you prefer encouragement to confrontation. Watch for putting other people’s needs so far ahead of your own that your priorities slip.',
+    SC:'You pair steadiness and patience with care and precision. You tend to be reliable, methodical and consistent, and more comfortable with a clear process and a stable environment than with sudden change or the spotlight. People likely trust you to follow through thoroughly. Watch for resisting change longer than is useful, or holding back opinions others would benefit from hearing.',
+    CD:'You lead with analysis and high standards, backed by assertiveness and a focus on results. You tend to be exacting, logical and independent, willing to challenge ideas that do not hold up and to push for the right answer. You are likely more task-focused than people-focused. Watch for perfectionism, and for critiques that land harder than you intend.',
+    CI:'You combine careful, systematic thinking with a sociable, expressive side. You want things accurate and well-reasoned, but you also enjoy explaining and persuading. That can make you a clear teacher or presenter of complex material. Watch for frustration when others do not care about the details as much as you do.',
+    CS:'You pair precision and discipline with patience and dependability. You tend to be careful, consistent and thorough, and you prefer a stable, well-defined environment with time to do work properly. Others likely rely on your accuracy and even temper. Watch for over-caution, and for discomfort with ambiguity or fast-changing situations.'
+  };
+  const LOW = {
+    D:'You may prefer to influence or support rather than take charge head-on, and you may hold back from confrontation or competition.',
+    I:'You may be more reserved than expressive, and you likely prefer substance and results over social energy and the spotlight.',
+    S:'You may favor change and momentum over patience and routine, and you may find waiting or repeating yourself harder than most.',
+    C:'You may work from instinct and the big picture rather than from detail and procedure, and you may find rules and precision constraining.'
+  };
+
+  function emptyAnswers(){ return QUESTIONS.map(() => [null,null,null,null]); }
+  function isComplete(a){ return a.every(v => v !== null && v !== undefined); }
+
+  // answers[q] = [wordIdx at rank 4, at rank 3, at rank 2, at rank 1]
+  function score(answers){
+    const t = {D:0,I:0,S:0,C:0};
+    answers.forEach((a, qi) => a.forEach((wi, pos) => {
+      if (wi === null || wi === undefined) return;
+      t[QUESTIONS[qi][wi][1]] += RANKS[pos].value;
+    }));
+    return t;
+  }
+
+  function plural(n, w){ return n + ' ' + w + (n === 1 ? '' : 's'); }
+
+  function analyze(t){
+    const order = ORDER.slice().sort((a,b) => t[b]-t[a] || ORDER.indexOf(a)-ORDER.indexOf(b));
+    const [p,s,th,l] = order;
+    const n = k => DIMS[k].name;
+    const gap12 = t[p]-t[s], gap13 = t[p]-t[th], spread = t[p]-t[l];
+    let shape, shapeText;
+    if (spread <= 6){
+      shape = 'even';
+      shapeText = `All four of your scores fall within ${plural(spread,'point')} of one another, so this is a very even profile. You ranked the four tendencies about equally across the ten sets, which usually means you adapt your approach to the situation rather than defaulting to one style. The combination below is the one that leads, but only slightly, and you may recognize yourself in all four descriptions.`;
+    } else if (gap13 <= 5){
+      shape = 'blended';
+      shapeText = `Your top three scores (${p} ${t[p]}, ${s} ${t[s]}, ${th} ${t[th]}) sit within ${plural(gap13,'point')} of one another, so your profile is relatively blended rather than driven by a single style. You likely draw on ${n(p)}, ${n(s)} and ${n(th)} in turn depending on the situation, and you may see yourself in more than one of the descriptions below. ${n(l)} (${t[l]}) is the clear outlier at the low end.`;
+    } else if (gap12 <= 2){
+      shape = 'pair';
+      shapeText = `${n(p)} and ${n(s)} are ${gap12 === 0 ? 'tied' : 'only ' + plural(gap12,'point') + ' apart'}, so these two styles are nearly in balance. Neither one dominates; together they describe your approach, and the order between them could easily flip on a different day. Your highest and lowest scores are ${plural(spread,'point')} apart.`;
+    } else if (gap12 <= 6){
+      shape = 'lead';
+      shapeText = `${n(p)} leads, with ${n(s)} a close second, ${plural(gap12,'point')} behind. Your primary style sets the tone and your secondary style shapes how you express it. Your highest and lowest scores are ${plural(spread,'point')} apart, ${spread >= 15 ? 'a fairly pronounced pattern' : 'a moderate spread'}.`;
+    } else if (gap12 <= 11){
+      shape = 'clear';
+      shapeText = `${n(p)} clearly leads your profile, ${plural(gap12,'point')} ahead of ${n(s)}, which plays a supporting role. Your highest and lowest scores are ${plural(spread,'point')} apart, ${spread >= 15 ? 'a fairly pronounced pattern' : 'a moderate spread'}.`;
+    } else {
+      shape = 'pronounced';
+      shapeText = `${n(p)} stands well above the rest, ${plural(gap12,'point')} ahead of your next score. This is a pronounced single-style pattern: ${n(s)} adds a secondary flavor, but your primary style does most of the work. Your highest and lowest scores are ${plural(spread,'point')} apart.`;
+    }
+    const pairText = PAIRS[p+s];
+    const lowText = `${n(l)} (${t[l]}) is the tendency you ranked lowest. That does not mean you lack it; within your own mix it is simply the one you reach for least. ${LOW[l]}`;
+    return { order, primary:p, secondary:s, third:th, lowest:l, totals:t, gap12, gap13, spread, shape, shapeText, pairText, lowText };
+  }
+
+  return { DIMS, ORDER, QUESTIONS, RANKS, emptyAnswers, isComplete, score, analyze };
+})();
+</script>
+
+<script>
+(function(){
+  const C = window.StyleCore;
+  const SHARE_URL = 'https://jathtech.github.io/bti-crm-releases/style-snapshot/';          // public link to this page (filled in after publishing)
+  const QR_DATA_URI = 'data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2041%2041%22%20shape-rendering%3D%22crispEdges%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M0%200h41v41H0z%22%2F%3E%3Cpath%20stroke%3D%22%23152019%22%20d%3D%22M4%204.5h7m2%200h3m4%200h1m2%200h3m1%200h1m2%200h7M4%205.5h1m5%200h1m2%200h3m3%200h1m2%200h1m5%200h1m1%200h1m5%200h1M4%206.5h1m1%200h3m1%200h1m1%200h1m2%200h2m1%200h3m4%200h2m3%200h1m1%200h3m1%200h1M4%207.5h1m1%200h3m1%200h1m1%200h1m3%200h1m2%200h1m1%200h1m1%200h1m2%200h1m3%200h1m1%200h3m1%200h1M4%208.5h1m1%200h3m1%200h1m1%200h1m1%200h2m1%200h4m2%200h5m2%200h1m1%200h3m1%200h1M4%209.5h1m5%200h1m1%200h4m9%200h2m3%200h1m5%200h1M4%2010.5h7m1%200h1m1%200h1m1%200h1m1%200h1m1%200h1m1%200h1m1%200h1m1%200h1m1%200h1m1%200h7M12%2011.5h1m2%200h1m2%200h1m1%200h1m2%200h5M4%2012.5h1m1%200h5m2%200h1m3%200h1m2%200h2m1%200h1m2%200h2m2%200h5M4%2013.5h1m1%200h2m1%200h1m1%200h2m1%200h1m1%200h2m2%200h1m1%200h4m1%200h1m2%200h2m1%200h2m1%200h1M4%2014.5h1m4%200h3m3%200h5m2%200h1m2%200h2m1%200h2m2%200h1m1%200h2M4%2015.5h1m1%200h2m1%200h1m1%200h1m3%200h1m1%200h1m4%200h1m1%200h2m2%200h2m2%200h3m1%200h1M5%2016.5h1m2%200h3m4%200h1m2%200h2m1%200h1m4%200h4m1%200h3M5%2017.5h4m2%200h5m1%200h1m1%200h1m3%200h6m1%200h1m2%200h1m1%200h2M4%2018.5h1m2%200h5m1%200h1m3%200h6m1%200h1m4%200h3m1%200h3M6%2019.5h4m1%200h1m2%200h3m1%200h1m1%200h1m1%200h2m1%200h6m1%200h1m1%200h1M5%2020.5h3m2%200h1m1%200h2m3%200h1m3%200h2m1%200h1m1%200h1m1%200h2m1%200h2m3%200h1M4%2021.5h3m2%200h1m1%200h7m2%200h1m1%200h3m2%200h1m2%200h2m1%200h4M5%2022.5h1m1%200h2m1%200h2m2%200h2m1%200h1m1%200h4m1%200h2m2%200h1m2%200h2m1%200h2M4%2023.5h1m1%200h4m2%200h1m2%200h4m1%200h1m4%200h2m2%200h1m1%200h6M4%2024.5h1m2%200h1m1%200h2m1%200h1m5%200h1m2%200h1m1%200h2m1%200h1m2%200h1m1%200h3M4%2025.5h1m4%200h1m7%200h1m3%200h4m2%200h1m1%200h2m2%200h1m2%200h1M4%2026.5h1m2%200h1m2%200h2m1%200h1m1%200h1m1%200h1m1%200h1m1%200h1m2%200h2m4%200h1m2%200h3M4%2027.5h1m2%200h2m2%200h3m1%200h2m1%200h3m1%200h1m1%200h2m4%200h1m2%200h4M4%2028.5h1m4%200h2m1%200h3m1%200h1m1%200h2m1%200h1m1%200h1m4%200h6m2%200h1M12%2029.5h1m2%200h4m2%200h4m2%200h2m3%200h1m1%200h1m1%200h1M4%2030.5h7m2%200h1m1%200h2m1%200h3m1%200h1m1%200h5m1%200h1m1%200h1m1%200h2M4%2031.5h1m5%200h1m1%200h3m2%200h1m2%200h1m1%200h4m1%200h2m3%200h4M4%2032.5h1m1%200h3m1%200h1m1%200h1m3%200h2m2%200h2m4%200h1m1%200h6m1%200h2M4%2033.5h1m1%200h3m1%200h1m1%200h2m1%200h1m1%200h1m2%200h4m3%200h3m2%200h1m1%200h3M4%2034.5h1m1%200h3m1%200h1m1%200h3m1%200h5m1%200h1m1%200h1m1%200h1m1%200h1m1%200h2M4%2035.5h1m5%200h1m4%200h1m2%200h1m1%200h1m3%200h2m6%200h3M4%2036.5h7m1%200h1m2%200h1m5%200h1m4%200h6m3%200h1%22%2F%3E%3C%2Fsvg%3E';        // SVG data URI of the QR code for SHARE_URL
+  const STORE_KEY = 'style-snapshot-v1';
+
+  const $ = id => document.getElementById(id);
+  const el = {
+    top:$('top'), stepLabel:$('stepLabel'), stepHint:$('stepHint'), progress:$('progress'),
+    intro:$('intro'), quiz:$('quiz'), results:$('results'), actions:$('actions'),
+    startBtn:$('startBtn'), backBtn:$('backBtn'), nextBtn:$('nextBtn'),
+    slots:$('slots'), tray:$('tray'), trayCount:$('trayCount'), hint:$('hint'), live:$('live'),
+    resTitle:$('resTitle'), resLede:$('resLede'), resSummary:$('resSummary'), resEyebrow:$('resEyebrow'),
+    chart:$('chart'), interp:$('interp'),
+    copyBtn:$('copyBtn'), shareBtn:$('shareBtn'), restartBtn:$('restartBtn'),
+    sharePanel:$('sharePanel'), qrImg:$('qrImg'), shareUrl:$('shareUrl'), copyUrlBtn:$('copyUrlBtn'),
+    toast:$('toast')
+  };
+
+  let state = { screen:'intro', q:0, answers:C.emptyAnswers() };
+
+  /* ---------- persistence ---------- */
+  function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORE_KEY); if(!raw) return null;
+      const s = JSON.parse(raw);
+      if(!s || !Array.isArray(s.answers) || s.answers.length !== C.QUESTIONS.length) return null;
+      return s;
+    }catch(e){ return null; }
+  }
+  function reset(){ state = { screen:'intro', q:0, answers:C.emptyAnswers() }; }
+
+  /* ---------- screens ---------- */
+  function show(screen){
+    state.screen = screen;
+    el.intro.hidden = screen !== 'intro';
+    el.quiz.hidden = screen !== 'quiz';
+    el.results.hidden = screen !== 'results';
+    el.top.hidden = screen !== 'quiz';
+    el.actions.hidden = screen !== 'quiz';
+    window.scrollTo(0,0);
+    save();
+  }
+
+  /* ---------- quiz rendering ---------- */
+  function renderProgress(){
+    el.stepLabel.textContent = `Question ${state.q+1} of ${C.QUESTIONS.length}`;
+    el.progress.innerHTML = C.QUESTIONS.map((_,i) =>
+      `<i class="${i < state.q ? 'done' : i === state.q ? 'cur' : ''}"></i>`).join('');
+  }
+
+  function cardHTML(wi, extra){
+    const word = C.QUESTIONS[state.q][wi][0];
+    return `<button type="button" class="card ${extra||''}" data-word="${wi}" draggable="false"><span>${word}</span><i class="grip" aria-hidden="true"></i></button>`;
+  }
+
+  function renderQuestion(){
+    renderProgress();
+    const a = state.answers[state.q];
+    const nextEmpty = a.indexOf(null);
+    el.slots.innerHTML = C.RANKS.map((r, pos) => {
+      const wi = a[pos];
+      const filled = wi !== null;
+      return `<li class="slot ${filled ? 'filled' : ''} ${pos === nextEmpty ? 'next' : ''}" data-drop="slot" data-pos="${pos}">
+        <span class="rank r${r.value}" aria-hidden="true">${r.value}</span>
+        <span class="slot-name">${r.label}</span>
+        <div class="slot-card">${filled ? cardHTML(wi, 'placed') : `<div class="drop-hint">${pos === nextEmpty ? 'Drop or tap a word' : ''}</div>`}</div>
+      </li>`;
+    }).join('');
+    const unplaced = [0,1,2,3].filter(wi => !a.includes(wi));
+    el.trayCount.textContent = unplaced.length ? `${unplaced.length} left` : 'All placed';
+    el.tray.innerHTML = unplaced.length
+      ? unplaced.map(wi => cardHTML(wi)).join('')
+      : `<div class="tray-done"><span><b>All four placed.</b><br>Drag a word to a different position to adjust, or tap one to return it here.</span></div>`;
+    const complete = C.isComplete(a);
+    el.nextBtn.disabled = !complete;
+    el.nextBtn.textContent = state.q === C.QUESTIONS.length-1 ? 'See results' : 'Next';
+    el.nextBtn.classList.toggle('pulse', complete);
+    el.stepHint.textContent = complete ? 'Ready' : 'Rank all four';
+    el.hint.textContent = state.q === 0
+      ? 'Drag each word onto a position, or tap the words in order from most to least like you.'
+      : 'Drag or tap to rank. Tap a placed word to return it.';
+    save();
+  }
+
+  /* ---------- placement logic ---------- */
+  function placeAt(wi, pos){           // put word wi into slot pos (rank position 0..3)
+    const a = state.answers[state.q];
+    const from = a.indexOf(wi);         // -1 if coming from tray
+    const displaced = a[pos];
+    if (displaced === wi) return;
+    a[pos] = wi;
+    if (from >= 0) a[from] = (displaced !== null && displaced !== undefined) ? displaced : null; // swap
+    // If it came from the tray and displaced something, that word returns to the tray.
+    announce(`${C.QUESTIONS[state.q][wi][0]} placed at ${C.RANKS[pos].value}, ${C.RANKS[pos].label}.`);
+    renderQuestion();
+  }
+  function unplace(wi){
+    const a = state.answers[state.q];
+    const from = a.indexOf(wi);
+    if (from >= 0){ a[from] = null; announce(`${C.QUESTIONS[state.q][wi][0]} returned to the tray.`); renderQuestion(); }
+  }
+  function tapWord(wi){
+    const a = state.answers[state.q];
+    if (a.includes(wi)) { unplace(wi); return; }
+    const pos = a.indexOf(null);
+    if (pos >= 0) placeAt(wi, pos);
+  }
+  function announce(msg){ el.live.textContent = msg; }
+
+  /* ---------- drag with pointer events ---------- */
+  let drag = null, suppressClick = false;
+  function onPointerDown(e){
+    const card = e.target.closest('.card'); if(!card || e.button > 0) return;
+    const r = card.getBoundingClientRect();
+    drag = { card, wi:+card.dataset.word, sx:e.clientX, sy:e.clientY, ox:e.clientX - r.left, oy:e.clientY - r.top, w:r.width, h:r.height, active:false, ghost:null, over:null, id:e.pointerId };
+    try{ card.setPointerCapture(e.pointerId); }catch(err){}
+  }
+  function onPointerMove(e){
+    if(!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+    if(!drag.active){
+      if (Math.hypot(dx,dy) < 6) return;
+      drag.active = true;
+      const g = drag.card.cloneNode(true);
+      g.classList.add('ghost'); g.classList.remove('placed');
+      g.style.width = drag.w + 'px'; g.style.height = drag.h + 'px';
+      document.body.appendChild(g); drag.ghost = g;
+      drag.card.classList.add('dragging');
+    }
+    e.preventDefault();
+    drag.ghost.style.transform = `translate(${e.clientX - drag.ox}px, ${e.clientY - drag.oy}px) scale(1.04)`;
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    const zone = target ? target.closest('[data-drop]') : null;
+    if (zone !== drag.over){
+      if (drag.over) drag.over.classList.remove('over');
+      drag.over = zone;
+      if (zone) zone.classList.add('over');
+    }
+  }
+  function endDrag(e, cancelled){
+    if(!drag || e.pointerId !== drag.id) return;
+    const d = drag; drag = null;
+    if (d.over) d.over.classList.remove('over');
+    if (d.ghost) d.ghost.remove();
+    d.card.classList.remove('dragging');
+    if (!d.active) return;              // a plain tap: let click handle it
+    suppressClick = true; setTimeout(() => suppressClick = false, 0);
+    if (cancelled || !d.over) return;
+    if (d.over.dataset.drop === 'slot') placeAt(d.wi, +d.over.dataset.pos);
+    else if (d.over.dataset.drop === 'tray') unplace(d.wi);
+  }
+  el.quiz.addEventListener('pointerdown', onPointerDown);
+  el.quiz.addEventListener('pointermove', onPointerMove);
+  el.quiz.addEventListener('pointerup', e => endDrag(e, false));
+  el.quiz.addEventListener('pointercancel', e => endDrag(e, true));
+  el.quiz.addEventListener('click', e => {
+    const card = e.target.closest('.card'); if(!card) return;
+    if (suppressClick) return;
+    tapWord(+card.dataset.word);
+  });
+  el.quiz.addEventListener('keydown', e => {
+    const card = e.target.closest('.card.placed'); if(!card) return;
+    const a = state.answers[state.q], wi = +card.dataset.word, from = a.indexOf(wi);
+    if (e.key === 'ArrowUp' && from > 0){ e.preventDefault(); placeAt(wi, from-1); focusWord(wi); }
+    if (e.key === 'ArrowDown' && from < 3){ e.preventDefault(); placeAt(wi, from+1); focusWord(wi); }
+  });
+  function focusWord(wi){ const b = el.quiz.querySelector(`.card[data-word="${wi}"]`); if(b) b.focus(); }
+
+  /* ---------- navigation ---------- */
+  el.startBtn.addEventListener('click', () => { reset(); show('quiz'); renderQuestion(); });
+  el.backBtn.addEventListener('click', () => {
+    if (state.q === 0){ show('intro'); return; }
+    state.q--; renderQuestion(); window.scrollTo(0,0);
+  });
+  el.nextBtn.addEventListener('click', () => {
+    if (!C.isComplete(state.answers[state.q])) return;
+    if (state.q < C.QUESTIONS.length-1){ state.q++; renderQuestion(); window.scrollTo(0,0); }
+    else { renderResults(); show('results'); }
+  });
+  el.restartBtn.addEventListener('click', () => { reset(); save(); show('intro'); });
+
+  /* ---------- results ---------- */
+  function renderResults(){
+    const t = C.score(state.answers);
+    const r = C.analyze(t);
+    const n = k => C.DIMS[k].name;
+    const letters = r.primary + '/' + r.secondary;
+    el.resEyebrow.textContent = `Your results · ${letters}`;
+    el.resTitle.textContent = `${n(r.primary)}\u00a0/ ${n(r.secondary)}`;
+    el.resLede.textContent = r.shape === 'even'
+      ? 'A very even profile across all four tendencies.'
+      : r.shape === 'blended'
+        ? `A blended profile. ${n(r.primary)} leads narrowly, with ${n(r.secondary)} and ${n(r.third)} close behind.`
+        : `Primary style ${n(r.primary)}, secondary style ${n(r.secondary)}.`;
+    el.resSummary.innerHTML = r.order.map(k => `<span>${k} — ${t[k]}</span>`).join('');
+
+    el.chart.setAttribute('aria-label', 'Scores from highest to lowest: ' + r.order.map(k => `${n(k)} ${t[k]}`).join(', ') + '. Each ranges from 10 to 40.');
+    el.chart.innerHTML = `<h2>Scores, highest to lowest</h2>` + r.order.map((k, i) => `
+      <div class="row">
+        <div class="row-head">
+          <span class="letter" aria-hidden="true">${k}</span>
+          <span class="dim-name">${n(k)}</span>
+          ${i === 0 ? '<span class="pill">Primary</span>' : i === 1 ? '<span class="pill sec">Secondary</span>' : ''}
+          <span class="val">${t[k]}</span>
+        </div>
+        <div class="track"><div class="fill" data-w="${(t[k]/40*100).toFixed(1)}"></div></div>
+      </div>`).join('') +
+      `<div class="axis" aria-hidden="true"><span style="left:0">0</span><span style="left:25%">10</span><span style="left:50%">20</span><span style="left:75%">30</span><span style="left:100%">40</span></div>
+       <p class="fine">Each dimension can range from 10 to 40. The four scores always total 100.</p>`;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.chart.querySelectorAll('.fill').forEach(f => f.style.width = f.dataset.w + '%');
+    }));
+
+    const dimCard = (k, label) => `<div class="dim"><span class="letter" aria-hidden="true">${k}</span>
+      <div class="dim-title">${n(k)} ${label ? `<span class="pill ${label === 'Secondary' ? 'sec' : ''}">${label}</span>` : ''}<span class="muted" style="font:500 13px var(--body)">${t[k]}</span></div>
+      <p>${C.DIMS[k].blurb}</p></div>`;
+    el.interp.innerHTML = `
+      <h2>What this pattern suggests</h2>
+      <p>${r.shapeText}</p>
+      <p>${r.pairText}</p>
+      <p>${r.lowText}</p>
+      <h2>The two styles that lead for you</h2>
+      <div class="dims">${dimCard(r.primary,'Primary')}${dimCard(r.secondary,'Secondary')}</div>
+      <details class="all"><summary>Show all four dimensions</summary>
+        <div class="dims">${C.ORDER.map(k => dimCard(k, k === r.primary ? 'Primary' : k === r.secondary ? 'Secondary' : '')).join('')}</div>
+      </details>`;
+
+    // share panel
+    const canShare = !!SHARE_URL;
+    el.shareBtn.hidden = !canShare;
+    el.copyBtn.classList.toggle('wide', !canShare);
+    if (canShare){ el.shareUrl.textContent = SHARE_URL; if (QR_DATA_URI) el.qrImg.src = QR_DATA_URI; else el.qrImg.hidden = true; }
+    el.sharePanel.hidden = true;
+  }
+
+  /* ---------- copy + share ---------- */
+  function copyText(text, okMsg){
+    const done = () => toast(okMsg);
+    const fail = () => toast('Copy failed. Select the text and copy it by hand.');
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, fail);
+    } else fail();
+  }
+  el.copyBtn.addEventListener('click', () => {
+    const t = C.score(state.answers), r = C.analyze(t), n = k => C.DIMS[k].name;
+    const lines = [
+      'Behavioral Style Snapshot',
+      `Primary: ${n(r.primary)} (${t[r.primary]}) · Secondary: ${n(r.secondary)} (${t[r.secondary]})`,
+      r.order.map(k => `${k} ${t[k]}`).join(' · '),
+      SHARE_URL
+    ].filter(Boolean);
+    copyText(lines.join('\n'), 'Results copied');
+  });
+  el.shareBtn.addEventListener('click', () => { el.sharePanel.hidden = !el.sharePanel.hidden; if(!el.sharePanel.hidden) el.sharePanel.scrollIntoView({behavior:'smooth', block:'nearest'}); });
+  el.copyUrlBtn.addEventListener('click', () => copyText(SHARE_URL, 'Link copied'));
+  let toastTimer;
+  function toast(msg){ el.toast.textContent = msg; el.toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.toast.classList.remove('show'), 1800); }
+
+  /* ---------- boot ---------- */
+  function start(snapshot){
+    const s = (snapshot && Array.isArray(snapshot.answers) && snapshot.answers.length === C.QUESTIONS.length) ? snapshot : load();
+    if (s){ state = s; }
+    if (state.screen === 'quiz'){ show('quiz'); renderQuestion(); }
+    else if (state.screen === 'results' && state.answers.every(C.isComplete)){ renderResults(); show('results'); }
+    else { show('intro'); }
+  }
+  if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => state);
+  if (window.claude && window.claude.hot && window.claude.hot.ready) window.claude.hot.ready(start);
+  else start(window.claude && window.claude.hot ? window.claude.hot.data : null);
+})();
+</script>
+</body>
+</html>
