@@ -166,9 +166,9 @@ details.all .dims{padding-top:10px}
     <!-- Intro -->
     <section class="screen" id="intro">
       <div class="stack">
-        <p class="eyebrow">Four-dimension behavioral style</p>
+        <p class="eyebrow">DISC-style assessment</p>
         <h1>Behavioral Style Snapshot</h1>
-        <p class="lede">Ten quick word rankings. In about three minutes you'll see how four common behavioral tendencies compare within you.</p>
+        <p class="lede">Ten quick word rankings. In about three minutes you'll see how the four DISC tendencies compare within you.</p>
         <div class="meta-row"><span>10 screens</span><span>About 3 minutes</span><span>No sign-in</span></div>
       </div>
       <div class="panel">
@@ -187,7 +187,6 @@ details.all .dims{padding-top:10px}
         <summary>About this assessment</summary>
         <div class="stack">
           <p>This is a forced-choice (ipsative) assessment. Every set of four words takes exactly the ranks 4, 3, 2 and 1, so your four scores always total 100 and each dimension can range from 10 to 40. The scores describe how strongly the four tendencies compare with one another <em>within you</em>. They are not percentiles, not a comparison with other people, not a measure of ability or psychological health, and not a diagnosis.</p>
-          <p>It is an independent four-dimension behavioral-style assessment based on the public-domain four-factor model first described by psychologist William Moulton Marston in 1928. It is not an official or certified DiSC® assessment and is not affiliated with or endorsed by John Wiley &amp; Sons or any other publisher of trademarked assessments.</p>
         </div>
       </details>
     </section>
@@ -528,7 +527,7 @@ window.StyleCore = (function(){
     const r = C.analyze(t);
     const n = k => C.DIMS[k].name;
     const letters = r.primary + '/' + r.secondary;
-    el.resEyebrow.textContent = `Your results · ${letters}`;
+    el.resEyebrow.textContent = `Your DISC results · ${letters}`;
     el.resTitle.textContent = `${n(r.primary)}\u00a0/ ${n(r.secondary)}`;
     el.resLede.textContent = r.shape === 'even'
       ? 'A very even profile across all four tendencies.'
